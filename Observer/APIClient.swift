@@ -43,39 +43,40 @@ protocol APIClientProtocol {
 class APIClient: APIClientProtocol {
     private let urlSession: URLSession
     private let baseUrl: String
-    
+    private let cache = URLCache.shared
+
     init(baseUrl: String, urlSession: URLSession = .shared) {
         self.baseUrl = baseUrl
         self.urlSession = urlSession
     }
-    
+
     func searchProducts(query: String) async throws -> [ProductResponseDto] {
         let endpoint = "\(APIEndpoints.search)?query=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
         return try await performRequest(endpoint: endpoint, method: .GET)
     }
-    
+
     func getProductDetails(productId: Int) async throws -> ProductResponseDto {
         let endpoint = "\(APIEndpoints.productDetails)\(productId)"
         return try await performRequest(endpoint: endpoint, method: .GET)
     }
-    
+
     func getLikedProducts(userId: String) async throws -> [ProductResponseDto] {
         let endpoint = "\(APIEndpoints.likedProducts)\(userId)"
         return try await performRequest(endpoint: endpoint, method: .GET)
     }
-    
+
     func toggleProductLike(userId: String, productId: Int, like: Bool) async throws -> String {
         let endpoint = String(format: APIEndpoints.likeProduct, userId, productId)
         return try await performRequest(endpoint: endpoint, method: .POST, body: ["like": like])
     }
-    
+
     func deleteAccount(userId: String) async throws -> Bool {
         let endpoint = "\(APIEndpoints.deleteAccount)\(userId)"
         let _: EmptyResponse = try await performRequest(endpoint: endpoint, method: .DELETE)
         return true
     }
-    
-    private func performRequest<T: Decodable>(endpoint: String, method: HTTPMethod, body: [String: Any]? = nil) async throws -> T {
+
+    private func performRequest<T: Codable>(endpoint: String, method: HTTPMethod, body: [String: Any]? = nil) async throws -> T {
         guard let url = URL(string: "\(baseUrl)\(endpoint)") else {
             throw APIError.invalidURL
         }
@@ -88,26 +89,26 @@ class APIClient: APIClientProtocol {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
         
-        log(request: request)
+        // Check cache first
+        if method == .GET, let cachedResponse = cache.cachedResponse(for: request) {
+            return try JSONDecoder().decode(T.self, from: cachedResponse.data)
+        }
         
         let (data, response) = try await urlSession.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.networkError(URLError(.badServerResponse))
+        guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
+            throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? 0)
         }
         
-        log(response: httpResponse, data: data)
+        let decodedResponse = try JSONDecoder().decode(T.self, from: data)
         
-        guard 200...299 ~= httpResponse.statusCode else {
-            throw APIError.serverError(httpResponse.statusCode)
+        // Cache response for future use
+        if method == .GET {
+            let cachedData = CachedURLResponse(response: httpResponse, data: data)
+            cache.storeCachedResponse(cachedData, for: request)
         }
         
-        do {
-            let decodedResponse = try JSONDecoder().decode(T.self, from: data)
-            return decodedResponse
-        } catch {
-            throw APIError.decodingError
-        }
+        return decodedResponse
     }
     
     private func log(request: URLRequest) {
@@ -125,10 +126,10 @@ class APIClient: APIClientProtocol {
         }
     }
     
-    public func sendRequest<T: Decodable>(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> T {
+    public func sendRequest<T: Codable>(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> T {
         return try await performRequest(endpoint: endpoint, method: HTTPMethod(rawValue: method) ?? .GET, body: body)
     }
 }
 
 // MARK: - Helper Structures
-struct EmptyResponse: Decodable {}
+struct EmptyResponse: Codable {}
