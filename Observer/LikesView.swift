@@ -26,14 +26,12 @@ struct LikesView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 16) {
-                // "마이페이지" 글씨
                 Text("마이페이지")
                     .font(.title)
                     .bold()
                     .foregroundColor(.white)
-                    .padding(.top, 50) // 위치를 조정
+                    .padding(.top, 50)
 
-                // "하트 이모지 + 찜목록" 노란 글씨
                 HStack {
                     Text("💛")
                         .font(.largeTitle)
@@ -43,7 +41,7 @@ struct LikesView: View {
                         .foregroundColor(Color.yellow)
                 }
             }
-            .padding(.bottom, 20) // 추가적인 아래 여백
+            .padding(.bottom, 20)
 
             if isLoading {
                 ProgressView()
@@ -55,25 +53,23 @@ struct LikesView: View {
                     .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                // 찜한 상품 목록을 가로로 스크롤 가능하게 표시
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 16) {
                         ForEach(likedProducts) { product in
                             NavigationLink(destination: ProductDetailView(product: product)) {
                                 ProductCardView(product: product, favoriteService: favoriteService)
-                                    .frame(width: 200) // 카드뷰의 너비를 지정
+                                    .frame(width: 200)
                             }
                         }
                     }
                     .padding(.horizontal, 16)
                 }
-                .background(Color.black.opacity(0.85)) // 배경색을 어둡게
+                .background(Color.black.opacity(0.85))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
             Spacer()
 
-            // 로그아웃 및 회원 탈퇴 버튼
             HStack {
                 Button(action: {
                     handleLogout()
@@ -114,7 +110,6 @@ struct LikesView: View {
             .padding(.horizontal)
             .padding(.bottom, 8)
 
-            // 개인정보 처리방침 버튼
             Button(action: {
                 showPrivacyPolicy.toggle()
             }) {
@@ -130,15 +125,14 @@ struct LikesView: View {
                     dismissButton: .default(Text("확인"))
                 )
             }
-
             .navigationDestination(isPresented: $navigateToLogin) {
-                    LoginView()
-                }
+                LoginView()
+            }
             .navigationDestination(isPresented: $navigateToSignUp) {
                 SignUpView()
             }
         }
-        .background(Color.black.opacity(0.85)) // 배경색을 어둡게
+        .background(Color.black.opacity(0.85))
         .edgesIgnoringSafeArea(.all)
         .onAppear {
             #if DEBUG
@@ -146,19 +140,16 @@ struct LikesView: View {
                 likedProducts = sampleProducts
             }
             #else
-            fetchLikedProducts()
+            Task {
+                await fetchLikedProducts()
+            }
             #endif
         }
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await fetchLikedProducts()
-        }
     }
 
     private func handleLogout() {
-        // 로그아웃 로직: JWT 토큰 삭제
         UserDefaults.standard.removeObject(forKey: "jwtToken")
-        // 로그인 화면으로 이동
         navigateToLogin = true
     }
     
@@ -229,12 +220,11 @@ struct LikesView: View {
     }
 }
 
-// 예제 프리뷰 데이터
 let sampleProducts: [ProductResponseDto] = [
     ProductResponseDto(id: 1, brand: "브랜드A", name: "상품A", price: 14900, discountRate: "70%", originalPrice: 49600, url: URL(string: "https://example.com")!, imageUrl: URL(string: "https://via.placeholder.com/200")!, priceHistory: [], category: "카테고리A"),
-    ProductResponseDto(id: 2, brand: "브랜드B", name: "상품B", price: 19900, discountRate: "60%", originalPrice: 49800, url: URL(string: "https://example.com")!, imageUrl: URL(string: "https://via.placeholder.com/200")!, priceHistory: [], category: "카테고리B"),
-    ProductResponseDto(id: 3, brand: "브랜드C", name: "상품C", price: 24900, discountRate: "50%", originalPrice: 49800, url: URL(string: "https://example.com")!, imageUrl: URL(string: "https://via.placeholder.com/200")!, priceHistory: [], category: "카테고리C")
+    ProductResponseDto(id: 2, brand: "브랜드B", name: "상품B", price: 29900, discountRate: "50%", originalPrice: 59800, url: URL(string: "https://example.com")!, imageUrl: URL(string: "https://via.placeholder.com/200")!, priceHistory: [], category: "카테고리B"),
 ]
+
 
 // 미리보기
 struct LikesView_Previews: PreviewProvider {
