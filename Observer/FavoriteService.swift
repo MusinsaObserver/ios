@@ -16,12 +16,10 @@ protocol FavoriteServiceProtocol {
 class FavoriteService: FavoriteServiceProtocol {
     private let baseURL: URL
     private let session: URLSession
-    private let tokenService: TokenServiceProtocol
     
-    init(baseURL: URL, session: URLSession = .shared, tokenService: TokenServiceProtocol = TokenService()) {
+    init(baseURL: URL, session: URLSession = .shared) {
         self.baseURL = baseURL
         self.session = session
-        self.tokenService = tokenService
     }
     
     func toggleFavorite(for productId: Int) async throws -> Bool {
@@ -29,10 +27,6 @@ class FavoriteService: FavoriteServiceProtocol {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        if let token = tokenService.getToken() {
-            request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
         
         let (data, response) = try await session.data(for: request)
         
@@ -49,10 +43,6 @@ class FavoriteService: FavoriteServiceProtocol {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         
-        if let token = tokenService.getToken() {
-            request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
         let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
@@ -67,10 +57,6 @@ class FavoriteService: FavoriteServiceProtocol {
         let url = baseURL.appendingPathComponent("favorites/status/\(productId)")
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        
-        if let token = tokenService.getToken() {
-            request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
         
         let (data, response) = try await session.data(for: request)
         

@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
-import GoogleSignIn
-import GoogleSignInSwift
 
 struct LoginView: View {
     @State private var isHomeView = false
-    
+    @State private var loginError: String? = nil
+
+    // Create an instance of AuthAPIClient
+    private let authAPIClient = AuthAPIClient(baseUrl: "https://your-backend-url.com")
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -37,19 +39,18 @@ struct LoginView: View {
                     }
                     .padding(.bottom, Constants.Spacing.medium)
                     
-                    // Google 로그인 버튼
-                    OAuth2LoginButton(
-                        clientID: "216085716340-ep8bbvpviq346n7iornnj6posmoktu9g.apps.googleusercontent.com",
-                        backendURL: "https://your-backend-url.com",
-                        buttonText: "Google로 계속하기",
-                        onSuccess: { jwt in
-                            print("Received JWT: \(jwt)")
-                            saveJwtToken(jwt) // JWT 저장
-                        },
-                        onError: { error in
-                            print("Error signing in: \(error.localizedDescription)")
-                        }
-                    )
+                    // Apple 로그인 버튼 (Google 로그인을 대체)
+                    Button(action: {
+                        performAppleSignIn()
+                    }) {
+                        Text("Apple로 계속하기")
+                            .font(Font.custom("Pretendard", size: 16).weight(.bold))
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.black)
+                            .cornerRadius(8)
+                    }
                     .padding(.horizontal, Constants.Spacing.medium)
                     
                     Spacer()
@@ -69,14 +70,36 @@ struct LoginView: View {
                     }
                     .padding(.bottom, Constants.Spacing.medium)
                 }
+                
+                // 로그인 실패 시 오류 메시지 표시
+                if let loginError = loginError {
+                    Text(loginError)
+                        .foregroundColor(.red)
+                        .padding()
+                }
             }
             .navigationBarHidden(true) // 네비게이션 바 숨김
         }
     }
     
-    // JWT 저장 함수
-    func saveJwtToken(_ token: String) {
-        UserDefaults.standard.set(token, forKey: "jwtToken")
+    func performAppleSignIn() {
+        // Simulate getting the ID token from Apple Sign-In
+        let idToken = "example_id_token"
+
+        Task {
+            do {
+                let sessionResponse = try await AuthAPIClient.shared.appleSignIn(idToken: idToken)
+
+                if sessionResponse.success {
+                    print("로그인 성공, 세션 시작됨")
+                    isHomeView = true
+                } else {
+                    loginError = "로그인 실패: \(sessionResponse.errorMessage ?? "알 수 없는 오류")"
+                }
+            } catch {
+                loginError = "로그인 중 오류 발생: \(error.localizedDescription)"
+            }
+        }
     }
 }
 

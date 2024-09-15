@@ -5,6 +5,7 @@
 //  Created by Jiwon Kim on 9/10/24.
 //
 
+import Foundation
 import SwiftUI
 
 struct ProductCardView: View {
@@ -16,12 +17,12 @@ struct ProductCardView: View {
     @EnvironmentObject private var navigationState: NavigationState
 
     init(product: ProductResponseDto,
-         tokenService: TokenServiceProtocol = TokenService(),
+         sessionService: SessionServiceProtocol = SessionService(),
          favoriteService: FavoriteServiceProtocol) {
         self.product = product
         self._viewModel = StateObject(wrappedValue: ProductCardViewModel(
             product: product,
-            tokenService: tokenService,
+            sessionService: sessionService,
             favoriteService: favoriteService
         ))
     }
@@ -132,19 +133,20 @@ struct ProductCardView: View {
     }
 }
 
+
 @MainActor
 class ProductCardViewModel: ObservableObject {
     let product: ProductResponseDto
     @Published var isFavorite: Bool = false
     
-    private let tokenService: TokenServiceProtocol
+    private let sessionService: SessionServiceProtocol
     private let favoriteService: FavoriteServiceProtocol
     
     init(product: ProductResponseDto,
-         tokenService: TokenServiceProtocol = TokenService(),
+         sessionService: SessionServiceProtocol = SessionService(),
          favoriteService: FavoriteServiceProtocol) {
         self.product = product
-        self.tokenService = tokenService
+        self.sessionService = sessionService
         self.favoriteService = favoriteService
         Task {
             await checkFavoriteStatus()
@@ -159,7 +161,7 @@ class ProductCardViewModel: ObservableObject {
     }
     
     var isLoggedIn: Bool {
-        return tokenService.getToken() != nil
+        return sessionService.getSession() != nil
     }
     
     func toggleFavorite() async throws -> Bool {

@@ -6,18 +6,17 @@
 //
 
 import SwiftUI
-import GoogleSignIn
-import GoogleSignInSwift
+import AuthenticationServices
 
 struct OAuth2LoginButton: View {
     private let viewModel: OAuth2LoginViewModel
     
-    init(clientID: String, backendURL: String, buttonText: String, onSuccess: @escaping (String) -> Void, onError: @escaping (Error) -> Void) {
+    init(clientID: String, backendURL: String, onSuccess: @escaping (String) -> Void, onError: @escaping (Error) -> Void) {
         self.viewModel = OAuth2LoginViewModel(clientID: clientID, backendURL: backendURL, onSuccess: onSuccess, onError: onError)
     }
     
     var body: some View {
-        GoogleSignInButton(action: viewModel.signInWithGoogle)
+        SignInWithAppleButton(.signIn, onRequest: viewModel.handleAuthorizationRequest, onCompletion: viewModel.handleAuthorizationCompletion)
             .frame(height: 50)
             .padding(.horizontal, Constants.Spacing.medium)
     }
@@ -30,35 +29,35 @@ class OAuth2LoginViewModel: ObservableObject {
     private let onError: (Error) -> Void
     private let authService: AuthenticationService
     
-    init(clientID: String, backendURL: String, onSuccess: @escaping (String) -> Void, onError: @escaping (Error) -> Void, authService: AuthenticationService = GoogleAuthService()) {
+    init(clientID: String, backendURL: String, onSuccess: @escaping (String) -> Void, onError: @escaping (Error) -> Void) {
         self.clientID = clientID
         self.backendURL = backendURL
         self.onSuccess = onSuccess
         self.onError = onError
-        self.authService = authService
+        self.authService = AppleSignInService(backendURL: backendURL)
     }
     
-    func signInWithGoogle() {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let presentingViewController = windowScene.windows.first?.rootViewController else {
-            onError(OAuth2Error.noPresentingViewController)
-            return
-        }
-        
-        authService.signIn(presenting: presentingViewController) { [weak self] result in
-            guard let self = self else { return }
-            
-            switch result {
-            case .success(let idToken):
-                self.authenticateWithBackend(idToken: idToken)
-            case .failure(let error):
-                self.onError(error)
+    func handleAuthorizationRequest(request: ASAuthorizationAppleIDRequest) {
+        // Customize request if needed
+    }
+    
+    func handleAuthorizationCompletion(result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .success(let authorization):
+            if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+               let identityToken = appleIDCredential.identityToken,
+               let idTokenString = String(data: identityToken, encoding: .utf8) {
+                self.authenticateWithBackend(idToken: idTokenString)
+            } else {
+                self.onError(OAuth2Error.noIDToken)
             }
+        case .failure(let error):
+            self.onError(error)
         }
     }
     
     private func authenticateWithBackend(idToken: String) {
-        guard let url = URL(string: "\(backendURL)/api/auth/google/login") else {
+        guard let url = URL(string: "\(backendURL)/api/auth/apple/login") else {
             onError(OAuth2Error.invalidBackendURL)
             return
         }
@@ -74,9 +73,9 @@ class OAuth2LoginViewModel: ObservableObject {
             }
 
             do {
-                let jwt = try self.parseJWTFromResponse(data: data)
+                let session = try self.parseSessionFromResponse(data: data)
                 DispatchQueue.main.async {
-                    self.onSuccess(jwt)
+                    self.onSuccess(session)
                 }
             } catch {
                 self.onError(error)
@@ -84,37 +83,18 @@ class OAuth2LoginViewModel: ObservableObject {
         }.resume()
     }
     
-    private func parseJWTFromResponse(data: Data?) throws -> String {
+    private func parseSessionFromResponse(data: Data?) throws -> String {
         guard let data = data,
               let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-              let jwt = json["jwtToken"] as? String else {
+              let session = json["session"] as? String else {
             throw OAuth2Error.invalidServerResponse
         }
-        return jwt
+        return session
     }
 }
 
 protocol AuthenticationService {
     func signIn(presenting: UIViewController, completion: @escaping (Result<String, Error>) -> Void)
-}
-
-struct GoogleAuthService: AuthenticationService {
-    func signIn(presenting: UIViewController, completion: @escaping (Result<String, Error>) -> Void) {
-        GIDSignIn.sharedInstance.signIn(withPresenting: presenting) { result, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
-            
-            guard let user = result?.user,
-                  let idToken = user.idToken?.tokenString else {
-                completion(.failure(OAuth2Error.noIDToken))
-                return
-            }
-            
-            completion(.success(idToken))
-        }
-    }
 }
 
 struct AuthenticationRequest {
@@ -139,11 +119,10 @@ enum OAuth2Error: Error {
 struct OAuth2LoginButton_Previews: PreviewProvider {
     static var previews: some View {
         OAuth2LoginButton(
-            clientID: "YOUR_GOOGLE_CLIENT_ID",
+            clientID: "YOUR_APPLE_CLIENT_ID",
             backendURL: "https://your-backend-url.com",
-            buttonText: "Google로 계속하기",
-            onSuccess: { jwt in
-                print("Received JWT: \(jwt)")
+            onSuccess: { session in
+                print("Received session: \(session)")
             },
             onError: { error in
                 print("Error signing in: \(error.localizedDescription)")

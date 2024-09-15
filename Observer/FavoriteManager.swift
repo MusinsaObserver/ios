@@ -59,7 +59,6 @@ class FavoriteManager: ObservableObject {
     }
 }
 
-
 extension Set {
     mutating func toggle(_ element: Element) {
         if contains(element) {

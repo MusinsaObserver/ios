@@ -23,6 +23,8 @@ private enum APIEndpoints {
     static let likedProducts = "/api/likes/"
     static let likeProduct = "/api/likes/%@/product/%d"
     static let deleteAccount = "/api/users/"
+    static let appleSignIn = "/api/auth/apple/login"
+    static let logout = "/api/auth/logout"
 }
 
 // MARK: - HTTP Methods
@@ -36,7 +38,9 @@ protocol APIClientProtocol {
     func getProductDetails(productId: Int) async throws -> ProductResponseDto
     func getLikedProducts(userId: String) async throws -> [ProductResponseDto]
     func toggleProductLike(userId: String, productId: Int, like: Bool) async throws -> String
+    func logout() async throws
     func deleteAccount(userId: String) async throws -> Bool
+    func appleSignIn(idToken: String) async throws -> String
 }
 
 // MARK: - API Client Implementation
@@ -48,6 +52,15 @@ class APIClient: APIClientProtocol {
     init(baseUrl: String, urlSession: URLSession = .shared) {
         self.baseUrl = baseUrl
         self.urlSession = urlSession
+    }
+
+    private var sessionId: String? {
+        get {
+            return UserDefaults.standard.string(forKey: "sessionId")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "sessionId")
+        }
     }
 
     func searchProducts(query: String) async throws -> [ProductResponseDto] {
@@ -76,41 +89,54 @@ class APIClient: APIClientProtocol {
         return true
     }
 
+    func appleSignIn(idToken: String) async throws -> String {
+        let endpoint = APIEndpoints.appleSignIn
+        return try await performRequest(endpoint: endpoint, method: .POST, body: ["idToken": idToken])
+    }
+
+    func logout() async throws {
+        let endpoint = APIEndpoints.logout
+        _ = try await performRequest(endpoint: endpoint, method: .POST, body: nil) as EmptyResponse
+        sessionId = nil
+    }
+
     private func performRequest<T: Codable>(endpoint: String, method: HTTPMethod, body: [String: Any]? = nil) async throws -> T {
         guard let url = URL(string: "\(baseUrl)\(endpoint)") else {
             throw APIError.invalidURL
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
-        
+
         if let body = body {
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        
-        // Check cache first
+
+        if let sessionId = sessionId {
+            request.setValue("Session-ID \(sessionId)", forHTTPHeaderField: "Authorization")
+        }
+
         if method == .GET, let cachedResponse = cache.cachedResponse(for: request) {
             return try JSONDecoder().decode(T.self, from: cachedResponse.data)
         }
-        
+
         let (data, response) = try await urlSession.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
             throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? 0)
         }
-        
+
         let decodedResponse = try JSONDecoder().decode(T.self, from: data)
-        
-        // Cache response for future use
+
         if method == .GET {
             let cachedData = CachedURLResponse(response: httpResponse, data: data)
             cache.storeCachedResponse(cachedData, for: request)
         }
-        
+
         return decodedResponse
     }
-    
+
     private func log(request: URLRequest) {
         print("Request: \(request.httpMethod ?? "") \(request.url?.absoluteString ?? "")")
         print("Headers: \(request.allHTTPHeaderFields ?? [:])")
@@ -118,15 +144,15 @@ class APIClient: APIClientProtocol {
             print("Body: \(bodyString)")
         }
     }
-    
+
     private func log(response: HTTPURLResponse, data: Data?) {
         print("Response: \(response.statusCode) \(response.url?.absoluteString ?? "")")
         if let data = data, let bodyString = String(data: data, encoding: .utf8) {
             print("Body: \(bodyString)")
         }
     }
-    
-    public func sendRequest<T: Codable>(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> T {
+
+    func sendRequest<T: Codable>(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> T {
         return try await performRequest(endpoint: endpoint, method: HTTPMethod(rawValue: method) ?? .GET, body: body)
     }
 }

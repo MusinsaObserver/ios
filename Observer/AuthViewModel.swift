@@ -11,23 +11,51 @@ import Combine
 // MARK: - Auth API Endpoints
 private enum AuthAPIEndpoints {
     static let login = "/api/auth/login"
-    static let validateToken = "/api/auth/validate"
-    static let refreshToken = "/api/auth/refresh"
+    static let validateSession = "/api/auth/validate"
+    static let refreshSession = "/api/auth/refresh"
 }
 
 // MARK: - Auth API Client Protocol
 protocol AuthAPIClientProtocol {
     func login(username: String, password: String) async throws -> LoginResponse
-    func validateToken(token: String) async throws -> Bool
-    func refreshToken(token: String) async throws -> String
+    func validateSession(session: String) async throws -> Bool
+    func refreshSession(session: String) async throws -> String
 }
 
 // MARK: - Auth API Client Implementation
 class AuthAPIClient: AuthAPIClientProtocol {
     private let apiClient: APIClient
+    private let baseUrl: String
+    static let shared = AuthAPIClient()
+    
+    private init() {
+        self.baseUrl = "" // Set a default value or load from configuration
+        self.apiClient = APIClient(baseUrl: self.baseUrl)
+    }
     
     init(baseUrl: String) {
+        self.baseUrl = baseUrl
         self.apiClient = APIClient(baseUrl: baseUrl)
+    }
+    
+    func appleSignIn(idToken: String) async throws -> SessionResponse {
+        let endpoint = "/api/auth/apple/login"
+        let url = URL(string: "\(baseUrl)\(endpoint)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = ["idToken": idToken]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
+            throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? 0)
+        }
+        
+        let sessionResponse = try JSONDecoder().decode(SessionResponse.self, from: data)
+        return sessionResponse
     }
     
     func login(username: String, password: String) async throws -> LoginResponse {
@@ -38,21 +66,21 @@ class AuthAPIClient: AuthAPIClientProtocol {
         )
     }
     
-    func validateToken(token: String) async throws -> Bool {
+    func validateSession(session: String) async throws -> Bool {
         return try await apiClient.sendRequest(
-            endpoint: AuthAPIEndpoints.validateToken,
+            endpoint: AuthAPIEndpoints.validateSession,
             method: "POST",
-            body: ["token": token]
+            body: ["session": session]
         )
     }
     
-    func refreshToken(token: String) async throws -> String {
-        let response: RefreshTokenResponse = try await apiClient.sendRequest(
-            endpoint: AuthAPIEndpoints.refreshToken,
+    func refreshSession(session: String) async throws -> String {
+        let response: RefreshSessionResponse = try await apiClient.sendRequest(
+            endpoint: AuthAPIEndpoints.refreshSession,
             method: "POST",
-            body: ["token": token]
+            body: ["session": session]
         )
-        return response.newToken
+        return response.newSession
     }
 }
 
@@ -63,18 +91,18 @@ class AuthViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     private let authClient: AuthAPIClientProtocol
-    private let tokenManager: TokenManagerProtocol
+    private let sessionManager: SessionManagerProtocol
     
-    init(authClient: AuthAPIClientProtocol, tokenManager: TokenManagerProtocol) {
+    init(authClient: AuthAPIClientProtocol, sessionManager: SessionManagerProtocol) {
         self.authClient = authClient
-        self.tokenManager = tokenManager
+        self.sessionManager = sessionManager
         checkLoginStatus()
     }
     
     func checkLoginStatus() {
         Task {
-            if let token = tokenManager.getToken(), !token.isEmpty {
-                await validateToken(token)
+            if let session = sessionManager.getSession(), !session.isEmpty {
+                await validateSession(session)
             } else {
                 await MainActor.run {
                     self.isLoggedIn = false
@@ -87,7 +115,7 @@ class AuthViewModel: ObservableObject {
         Task {
             do {
                 let response = try await authClient.login(username: username, password: password)
-                await handleSuccessfulLogin(token: response.token, user: response.user)
+                await handleSuccessfulLogin(session: response.session, user: response.user)
             } catch {
                 await handleError(error)
             }
@@ -95,30 +123,30 @@ class AuthViewModel: ObservableObject {
     }
     
     func logout() {
-        tokenManager.clearToken()
+        sessionManager.clearSession()
         isLoggedIn = false
         user = nil
     }
     
-    func refreshToken() {
+    func refreshSession() {
         Task {
-            guard let token = tokenManager.getToken() else {
+            guard let session = sessionManager.getSession() else {
                 await MainActor.run { self.logout() }
                 return
             }
             
             do {
-                let newToken = try await authClient.refreshToken(token: token)
-                tokenManager.saveToken(newToken)
+                let newSession = try await authClient.refreshSession(session: session)
+                sessionManager.saveSession(newSession)
             } catch {
                 await handleError(error)
             }
         }
     }
     
-    private func validateToken(_ token: String) async {
+    private func validateSession(_ session: String) async {
         do {
-            let isValid = try await authClient.validateToken(token: token)
+            let isValid = try await authClient.validateSession(session: session)
             await MainActor.run {
                 self.isLoggedIn = isValid
                 if !isValid {
@@ -131,8 +159,8 @@ class AuthViewModel: ObservableObject {
     }
     
     @MainActor
-    private func handleSuccessfulLogin(token: String, user: User) {
-        tokenManager.saveToken(token)
+    private func handleSuccessfulLogin(session: String, user: User) {
+        sessionManager.saveSession(session)
         self.user = user
         isLoggedIn = true
         errorMessage = nil
@@ -154,71 +182,39 @@ struct User: Codable {
 }
 
 struct LoginResponse: Codable {
-    let token: String
+    let session: String
     let user: User
-}
-
-struct RefreshTokenResponse: Codable {
-    let newToken: String
-}
-
-protocol TokenManagerProtocol {
-    func saveToken(_ token: String)
-    func getToken() -> String?
-    func clearToken()
-}
-
-// MARK: - Token Manager Implementation
-class TokenManager: TokenManagerProtocol {
-    private let userDefaults: UserDefaults
-    private let tokenKey = "authToken"
-    
-    init(userDefaults: UserDefaults = .standard) {
-        self.userDefaults = userDefaults
-    }
-    
-    func saveToken(_ token: String) {
-        userDefaults.set(token, forKey: tokenKey)
-    }
-    
-    func getToken() -> String? {
-        return userDefaults.string(forKey: tokenKey)
-    }
-    
-    func clearToken() {
-        userDefaults.removeObject(forKey: tokenKey)
-    }
 }
 
 // MARK: - Mock Implementations for Preview
 #if DEBUG
 class MockAuthAPIClient: AuthAPIClientProtocol {
     func login(username: String, password: String) async throws -> LoginResponse {
-        return LoginResponse(token: "mock_token", user: User(id: "1", username: username, email: "\(username)@example.com"))
+        return LoginResponse(session: "mock_session", user: User(id: "1", username: username, email: "\(username)@example.com"))
     }
     
-    func validateToken(token: String) async throws -> Bool {
+    func validateSession(session: String) async throws -> Bool {
         return true
     }
     
-    func refreshToken(token: String) async throws -> String {
-        return "new_mock_token"
+    func refreshSession(session: String) async throws -> String {
+        return "new_mock_session"
     }
 }
 
-class MockTokenManager: TokenManagerProtocol {
-    private var token: String?
+class MockSessionManager: SessionManagerProtocol {
+    private var session: String?
     
-    func saveToken(_ token: String) {
-        self.token = token
+    func saveSession(_ session: String) {
+        self.session = session
     }
     
-    func getToken() -> String? {
-        return token
+    func getSession() -> String? {
+        return session
     }
     
-    func clearToken() {
-        token = nil
+    func clearSession() {
+        session = nil
     }
 }
 #endif

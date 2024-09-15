@@ -22,9 +22,10 @@ struct ProductDetailView: View {
         self.favoriteService = favoriteService
     }
 
-    // JWT 토큰을 UserDefaults에서 가져와 로그인 상태를 확인
+    // 세션 기반 로그인 상태 확인
     private var isLoggedIn: Bool {
-        return UserDefaults.standard.string(forKey: "jwtToken") != nil
+        // 세션이 존재하는지 확인하는 로직 (세션 쿠키나 상태를 확인)
+        return URLSession.shared.configuration.httpCookieStorage?.cookies?.first(where: { $0.name == "session" }) != nil
     }
 
     var body: some View {
@@ -48,12 +49,12 @@ struct ProductDetailView: View {
                             Text(product.brand)
                                 .font(.caption)
                                 .foregroundColor(.gray)
-                            
+
                             // 상품명
                             Text(product.name)
                                 .font(.headline)
                                 .foregroundColor(.white)
-                            
+
                             // 하트 버튼
                             HStack {
                                 Button(action: {
@@ -80,13 +81,13 @@ struct ProductDetailView: View {
                                         secondaryButton: .cancel()
                                     )
                                 }
-                                
+
                                 Spacer()
                             }
                             .padding(.vertical, 8)
                         }
                         .padding(.horizontal, 16)
-                        
+
                         // 무신사 구매 링크
                         Button(action: {
                             UIApplication.shared.open(product.url)
@@ -100,14 +101,14 @@ struct ProductDetailView: View {
                                 .cornerRadius(8)
                         }
                         .padding(.horizontal, 16)
-                        
+
                         // 할인 정보
                         Text("\(product.discountRate) \(formatPrice(product.price))원")
                             .font(.title2)
                             .foregroundColor(.red)
                             .padding(.horizontal, 16)
                             .padding(.top, 4)
-                        
+
                         // 가격 그래프 추가
                         VStack(alignment: .leading) {
                             Text("가격 그래프")
@@ -117,7 +118,7 @@ struct ProductDetailView: View {
                                 .frame(height: 250) // 그래프의 높이 설정
                         }
                         .padding(.horizontal, 16)
-                        
+
                         // 가격 정보
                         VStack(alignment: .leading, spacing: 4) {
                             Text("정가: \(formatPrice(24200))")
@@ -128,7 +129,7 @@ struct ProductDetailView: View {
                         .font(.body)
                         .foregroundColor(.white.opacity(0.8))
                         .padding(.horizontal, 16)
-                        
+
                         // 로그인하지 않은 경우 표시할 추가 UI
                         if !isLoggedIn {
                             VStack(spacing: 8) {
@@ -136,7 +137,7 @@ struct ProductDetailView: View {
                                     .font(.custom("Pretendard", size: 14))
                                     .foregroundColor(.white.opacity(0.8))
                                     .multilineTextAlignment(.center)
-                                
+
                                 Button(action: {
                                     isShowingLogin = true
                                 }) {
@@ -152,13 +153,13 @@ struct ProductDetailView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 16)
                         }
-                        
+
                         // 추천 유사 상품
                         VStack(alignment: .leading) {
                             Text("추천 유사 상품")
                                 .font(.headline)
                                 .foregroundColor(.white)
-                            
+
                             ScrollView(.horizontal) {
                                 HStack {
                                     ForEach(recommendedProducts) { product in
@@ -218,5 +219,28 @@ struct ProductDetailView_Previews: PreviewProvider {
             priceHistory: samplePriceHistory,
             category: "테스트 카테고리"
         ), favoriteService: MockFavoriteService())
+    }
+}
+
+// Mock implementation of FavoriteServiceProtocol for testing
+class MockFavoriteService: FavoriteServiceProtocol {
+    private var favorites: Set<Int> = []
+    
+    func toggleFavorite(for productId: Int) async throws -> Bool {
+        if favorites.contains(productId) {
+            favorites.remove(productId)
+            return false  // The product is no longer a favorite
+        } else {
+            favorites.insert(productId)
+            return true   // The product is now a favorite
+        }
+    }
+    
+    func getFavorites() async throws -> [Int] {
+        return Array(favorites)
+    }
+    
+    func checkFavoriteStatus(for productId: Int) async throws -> Bool {
+        return favorites.contains(productId)
     }
 }

@@ -11,7 +11,7 @@ struct HomeView: View {
     @State private var searchQuery = ""
     @State private var isShowingSearchResults = false
     @State private var isHomeView = true
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -86,21 +86,22 @@ struct HomeView: View {
     }
     
     private func performApiRequest() {
-        guard let jwtToken = getJwtToken() else {
-            print("No JWT Token found")
+        // Use session-based authentication
+        guard let sessionId = getSessionId() else {
+            print("No session ID found")
             return
         }
         
         var request = URLRequest(url: URL(string: "https://your-api-url.com")!)
-        request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("Session \(sessionId)", forHTTPHeaderField: "Authorization")
         
         URLSession.shared.dataTask(with: request) { data, response, error in
             // API 응답 처리
         }.resume()
     }
     
-    private func getJwtToken() -> String? {
-        return UserDefaults.standard.string(forKey: "jwtToken")
+    private func getSessionId() -> String? {
+        return UserDefaults.standard.string(forKey: "sessionId")
     }
 }
 

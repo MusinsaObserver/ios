@@ -6,8 +6,7 @@
 //
 
 import SwiftUI
-import GoogleSignIn
-import GoogleSignInSwift
+import AuthenticationServices
 
 struct SignUpView: View {
     
@@ -49,11 +48,11 @@ struct SignUpView: View {
                     // 동의 항목들
                     VStack(alignment: .leading, spacing: Constants.Spacing.medium) {
                         CheckBoxView(isChecked: $agreeAll, text: "전체 동의")
-                        .onChange(of: agreeAll) {
-                            agreeTerms = agreeAll
-                            agreePrivacy = agreeAll
-                            agreeThirdParty = agreeAll
-                        }
+                            .onChange(of: agreeAll) {
+                                agreeTerms = agreeAll
+                                agreePrivacy = agreeAll
+                                agreeThirdParty = agreeAll
+                            }
                         
                         HStack {
                             CheckBoxView(isChecked: $agreeTerms, text: "(필수) 서비스 이용 약관 관련 전체 동의")
@@ -96,18 +95,17 @@ struct SignUpView: View {
                     
                     Spacer()
                     
-                    // Google로 계속하기 버튼
-                    OAuth2LoginButton(
-                        clientID: "216085716340-ep8bbvpviq346n7iornnj6posmoktu9g.apps.googleusercontent.com",
-                        backendURL: "https://your-backend-url.com",
-                        buttonText: "Google로 계속하기",
-                        onSuccess: { jwt in
-                            print("Received JWT: \(jwt)")
+                    // Apple Sign-In 버튼
+                    SignInWithAppleButton(
+                        .signIn,
+                        onRequest: { request in
+                            // Customize request if needed
                         },
-                        onError: { error in
-                            print("Error signing in: \(error.localizedDescription)")
-                        }
+                        onCompletion: handleAuthorization
                     )
+                    .signInWithAppleButtonStyle(.white)
+                    .frame(height: 50)
+                    .padding(.horizontal, Constants.Spacing.medium)
                     
                     Spacer() // 홈 인디케이터 위에 위치하도록 여유 공간 추가
                         .frame(height: 20)
@@ -144,9 +142,28 @@ struct SignUpView: View {
         }
     }
     
-    // 전체 동의 상태를 업데이트하는 함수
-    func updateAgreeAll() {
-        agreeAll = agreeTerms && agreePrivacy && agreeThirdParty
+    // Handle Apple Sign-In result
+    private func handleAuthorization(result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .success(let authorization):
+            if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+               let identityToken = appleIDCredential.identityToken,
+               let idTokenString = String(data: identityToken, encoding: .utf8) {
+                // Perform backend authentication with idTokenString
+                authenticateWithBackend(idToken: idTokenString)
+            } else {
+                // Handle error
+                print("No ID token received")
+            }
+        case .failure(let error):
+            print("Error signing in: \(error.localizedDescription)")
+        }
+    }
+    
+    private func authenticateWithBackend(idToken: String) {
+        // Add your backend authentication logic here
+        print("Received ID Token: \(idToken)")
+        // Example: Use SessionService to start a session
     }
     
     // 약관 내용들
@@ -225,34 +242,34 @@ struct TermsPopupView: View {
             ScrollView {
                 Text(content)
                     .font(Font.custom("Pretendard", size: 14))
-                    .padding()
+                    .padding(.horizontal, 16)
             }
             
-            Button(action: {
-                showPopup = false
-            }) {
-                Text("닫기")
-                    .font(.custom("Pretendard", size: 14).weight(.semibold))
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+            HStack {
+                Button("닫기") {
+                    showPopup = false
+                }
+                .buttonStyle(BorderlessButtonStyle())
+                .padding(.bottom, 16)
+                
+                Spacer()
+                
+                Button("동의") {
+                    isChecked = true
+                    showPopup = false
+                }
+                .buttonStyle(BorderlessButtonStyle())
+                .padding(.bottom, 16)
             }
-            .padding(.bottom, 16)
         }
-        .frame(width: 300, height: 400)
         .background(Color.white)
-        .cornerRadius(16)
+        .cornerRadius(12)
         .shadow(radius: 10)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.gray, lineWidth: 1)
-        )
+        .padding(16)
+        .frame(maxWidth: .infinity)
     }
 }
 
-// Preview
 struct SignUpView_Previews: PreviewProvider {
     static var previews: some View {
         SignUpView()
