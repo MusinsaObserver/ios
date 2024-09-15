@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeView: View {
     @State private var searchQuery = ""
     @State private var isShowingSearchResults = false
+    @State private var isHomeView = true
     
     var body: some View {
         NavigationStack {
@@ -33,7 +34,7 @@ struct HomeView: View {
     }
     
     private var navigationBar: some View {
-        NavigationBarView(title: "MUSINSA ⦁ OBSERVER", isHomeView: true)
+        NavigationBarView(title: "MUSINSA ⦁ OBSERVER", isHomeView: $isHomeView)
     }
     
     private var searchBar: some View {

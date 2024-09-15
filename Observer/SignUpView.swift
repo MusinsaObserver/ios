@@ -20,6 +20,8 @@ struct SignUpView: View {
     @State private var showPrivacyPopup = false
     @State private var showThirdPartyPopup = false
     
+    @State private var isHomeView = false
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -27,7 +29,7 @@ struct SignUpView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack {
-                    NavigationBarView(title: "MUSINSA ⦁ OBSERVER")
+                    NavigationBarView(title: "MUSINSA ⦁ OBSERVER", isHomeView: $isHomeView)
                     
                     Spacer()
                     

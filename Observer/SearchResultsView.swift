@@ -12,12 +12,15 @@ struct SearchResultsView: View {
     @State private var products: [ProductResponseDto]
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
+    @State private var isHomeView = false
     
     let apiClient = APIClient(baseUrl: "https://your-api-base-url.com")
+    let favoriteService: FavoriteServiceProtocol
 
-    init(searchQuery: String, products: [ProductResponseDto] = []) {
+    init(searchQuery: String, products: [ProductResponseDto] = [], favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://your-api-base-url.com")!)) {
         self.searchQuery = searchQuery
         _products = State(initialValue: products)
+        self.favoriteService = favoriteService
     }
 
     var body: some View {
@@ -26,7 +29,7 @@ struct SearchResultsView: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: Constants.Spacing.medium) {
-                NavigationBarView(title: "검색 결과")
+                NavigationBarView(title: "MUSINSA ⦁ OBSERVER", isHomeView: $isHomeView)
                     .padding(.top, safeAreaTop() - 50)
                 
                 if isLoading {
@@ -47,7 +50,7 @@ struct SearchResultsView: View {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Constants.Spacing.medium) {
                             ForEach(products) { product in
-                                ProductCardView(product: product)
+                                ProductCardView(product: product, favoriteService: favoriteService)
                             }
                         }
                         .padding(.horizontal, Constants.Spacing.medium)
@@ -93,30 +96,30 @@ struct SearchResultsView_Previews: PreviewProvider {
                 ProductResponseDto(
                     id: 1,
                     brand: "브랜드1",
-                    productName: "오버사이즈 셔츠",
+                    name: "오버사이즈 셔츠",
                     price: 14700,
                     discountRate: "70%",
                     originalPrice: 49000,
-                    productURL: "https://example.com/product1",
-                    imageURL: "https://example.com/sample-product-image.jpg",
-                    priceHistoryList: samplePriceHistory,
+                    url: URL(string: "https://example.com/product1")!,
+                    imageUrl: URL(string: "https://example.com/sample-product-image.jpg")!,
+                    priceHistory: samplePriceHistory,
                     category: "셔츠"
                 ),
                 ProductResponseDto(
                     id: 2,
                     brand: "브랜드2",
-                    productName: "린넨 셔츠",
+                    name: "린넨 셔츠",
                     price: 31500,
                     discountRate: "50%",
                     originalPrice: 63000,
-                    productURL: "https://example.com/product2",
-                    imageURL: "https://example.com/sample-product-image.jpg",
-                    priceHistoryList: samplePriceHistory,
+                    url: URL(string: "https://example.com/product2")!,
+                    imageUrl: URL(string: "https://example.com/sample-product-image.jpg")!,
+                    priceHistory: samplePriceHistory,
                     category: "셔츠"
                 )
             ]
             
-            SearchResultsView(searchQuery: "오버사이즈 셔츠", products: sampleProducts)
+            SearchResultsView(searchQuery: "오버사이즈 셔츠", products: sampleProducts, favoriteService: MockFavoriteService())
         }
     }
 }

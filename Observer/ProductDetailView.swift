@@ -12,8 +12,15 @@ struct ProductDetailView: View {
     @State private var isLiked = false
     @State private var showLoginAlert = false
     @State private var isShowingLogin = false
+    @State private var isHomeView = false
 
     let apiClient = APIClient(baseUrl: "https://your-api-base-url.com")
+    let favoriteService: FavoriteServiceProtocol
+
+    init(product: ProductResponseDto, favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://your-api-base-url.com")!)) {
+        self.product = product
+        self.favoriteService = favoriteService
+    }
 
     // JWT 토큰을 UserDefaults에서 가져와 로그인 상태를 확인
     private var isLoggedIn: Bool {
@@ -23,11 +30,11 @@ struct ProductDetailView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                NavigationBarView(title: "MUSINSA ⦁ OBSERVER")
+                NavigationBarView(title: "MUSINSA ⦁ OBSERVER", isHomeView: $isHomeView)
                 ScrollView {
                     VStack(spacing: 8) {
                         // 상품 이미지
-                        AsyncImage(url: URL(string: product.imageURL)) { image in
+                        AsyncImage(url: product.imageUrl) { image in
                             image
                                 .resizable()
                                 .scaledToFit()
@@ -43,7 +50,7 @@ struct ProductDetailView: View {
                                 .foregroundColor(.gray)
                             
                             // 상품명
-                            Text(product.productName)
+                            Text(product.name)
                                 .font(.headline)
                                 .foregroundColor(.white)
                             
@@ -82,9 +89,7 @@ struct ProductDetailView: View {
                         
                         // 무신사 구매 링크
                         Button(action: {
-                            if let url = URL(string: product.productURL) {
-                                UIApplication.shared.open(url)
-                            }
+                            UIApplication.shared.open(product.url)
                         }) {
                             Text("무신사 구매 링크")
                                 .font(.custom("Pretendard", size: 14))
@@ -108,7 +113,7 @@ struct ProductDetailView: View {
                             Text("가격 그래프")
                                 .font(.headline)
                                 .foregroundColor(.white)
-                            PriceHistoryChartView(priceHistory: product.priceHistoryList)
+                            PriceHistoryChartView(priceHistory: product.priceHistory)
                                 .frame(height: 250) // 그래프의 높이 설정
                         }
                         .padding(.horizontal, 16)
@@ -157,8 +162,8 @@ struct ProductDetailView: View {
                             ScrollView(.horizontal) {
                                 HStack {
                                     ForEach(recommendedProducts) { product in
-                                        NavigationLink(destination: ProductDetailView(product: product)) {
-                                            ProductCardView(product: product)
+                                        NavigationLink(destination: ProductDetailView(product: product, favoriteService: favoriteService)) {
+                                            ProductCardView(product: product, favoriteService: favoriteService)
                                         }
                                     }
                                 }
@@ -177,31 +182,13 @@ struct ProductDetailView: View {
     }
 
     private func handleLikeAction() async {
-        guard let userId = getUserId() else {
-            print("사용자 ID를 가져올 수 없습니다.")
-            return
-        }
-
         do {
-            if isLiked {
-                let response = try await apiClient.likeProduct(userId: userId, productId: product.id)
-                print("찜 성공: \(response)")
-            } else {
-                let response = try await apiClient.unlikeProduct(userId: userId, productId: product.id)
-                print("찜 해제 성공: \(response)")
-            }
+            isLiked = try await favoriteService.toggleFavorite(for: product.id)
+            print(isLiked ? "찜 성공" : "찜 해제 성공")
         } catch {
             print("찜하기/해제 실패: \(error.localizedDescription)")
-            await MainActor.run {
-                isLiked.toggle() // 실패 시, 원래 상태로 되돌리기
-            }
+            isLiked.toggle() // 실패 시, 원래 상태로 되돌리기
         }
-    }
-
-    private func getUserId() -> String? {
-        // JWT 토큰에서 사용자 ID를 추출하는 로직
-        // 예시: return UserDefaults.standard.string(forKey: "userId")
-        return UserDefaults.standard.string(forKey: "userId")
     }
 
     private func formatPrice(_ price: Int) -> String {
@@ -213,8 +200,8 @@ struct ProductDetailView: View {
 }
 
 let recommendedProducts: [ProductResponseDto] = [
-    ProductResponseDto(id: 1, brand: "후크", productName: "빈티지 워싱 네이비 체크셔츠", price: 43900, discountRate: "53%", originalPrice: 90000, productURL: "https://example.com/product/1", imageURL: "https://example.com/image1.jpg", priceHistoryList: samplePriceHistory, category: "셔츠"),
-    ProductResponseDto(id: 2, brand: "이즈", productName: "린넨 셔츠 [오버사이즈 핏]_블랙_남성용", price: 31500, discountRate: "50%", originalPrice: 63000, productURL: "https://example.com/product/2", imageURL: "https://example.com/image2.jpg", priceHistoryList: samplePriceHistory, category: "셔츠")
+    ProductResponseDto(id: 1, brand: "후크", name: "빈티지 워싱 네이비 체크셔츠", price: 43900, discountRate: "53%", originalPrice: 90000, url: URL(string: "https://example.com/product/1")!, imageUrl: URL(string: "https://example.com/image1.jpg")!, priceHistory: samplePriceHistory, category: "셔츠"),
+    ProductResponseDto(id: 2, brand: "이즈", name: "린넨 셔츠 [오버사이즈 핏]_블랙_남성용", price: 31500, discountRate: "50%", originalPrice: 63000, url: URL(string: "https://example.com/product/2")!, imageUrl: URL(string: "https://example.com/image2.jpg")!, priceHistory: samplePriceHistory, category: "셔츠")
 ]
 
 struct ProductDetailView_Previews: PreviewProvider {
@@ -222,14 +209,14 @@ struct ProductDetailView_Previews: PreviewProvider {
         ProductDetailView(product: ProductResponseDto(
             id: 1,
             brand: "테스트 브랜드",
-            productName: "테스트 상품",
+            name: "테스트 상품",
             price: 15000,
             discountRate: "50%",
             originalPrice: 30000,
-            productURL: "https://example.com/product/1",
-            imageURL: "https://example.com/image.jpg",
-            priceHistoryList: samplePriceHistory,
+            url: URL(string: "https://example.com/product/1")!,
+            imageUrl: URL(string: "https://example.com/image.jpg")!,
+            priceHistory: samplePriceHistory,
             category: "테스트 카테고리"
-        ))
+        ), favoriteService: MockFavoriteService())
     }
 }

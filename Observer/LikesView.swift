@@ -17,6 +17,11 @@ struct LikesView: View {
     @State private var showPrivacyPolicy = false
     
     let apiClient = APIClient(baseUrl: "https://your-api-base-url.com")
+    let favoriteService: FavoriteServiceProtocol
+
+    init(favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://your-api-base-url.com")!)) {
+        self.favoriteService = favoriteService
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,7 +60,7 @@ struct LikesView: View {
                     HStack(spacing: 16) {
                         ForEach(likedProducts) { product in
                             NavigationLink(destination: ProductDetailView(product: product)) {
-                                ProductCardView(product: product)
+                                ProductCardView(product: product, favoriteService: favoriteService)
                                     .frame(width: 200) // 카드뷰의 너비를 지정
                             }
                         }
@@ -226,14 +231,21 @@ struct LikesView: View {
 
 // 예제 프리뷰 데이터
 let sampleProducts: [ProductResponseDto] = [
-    ProductResponseDto(id: 1, brand: "브랜드A", productName: "상품A", price: 14900, discountRate: "70%", originalPrice: 49600, productURL: "", imageURL: "https://via.placeholder.com/200", priceHistoryList: [], category: "카테고리A"),
-    ProductResponseDto(id: 2, brand: "브랜드B", productName: "상품B", price: 19900, discountRate: "60%", originalPrice: 49800, productURL: "", imageURL: "https://via.placeholder.com/200", priceHistoryList: [], category: "카테고리B"),
-    ProductResponseDto(id: 3, brand: "브랜드C", productName: "상품C", price: 24900, discountRate: "50%", originalPrice: 49800, productURL: "", imageURL: "https://via.placeholder.com/200", priceHistoryList: [], category: "카테고리C")
+    ProductResponseDto(id: 1, brand: "브랜드A", name: "상품A", price: 14900, discountRate: "70%", originalPrice: 49600, url: URL(string: "https://example.com")!, imageUrl: URL(string: "https://via.placeholder.com/200")!, priceHistory: [], category: "카테고리A"),
+    ProductResponseDto(id: 2, brand: "브랜드B", name: "상품B", price: 19900, discountRate: "60%", originalPrice: 49800, url: URL(string: "https://example.com")!, imageUrl: URL(string: "https://via.placeholder.com/200")!, priceHistory: [], category: "카테고리B"),
+    ProductResponseDto(id: 3, brand: "브랜드C", name: "상품C", price: 24900, discountRate: "50%", originalPrice: 49800, url: URL(string: "https://example.com")!, imageUrl: URL(string: "https://via.placeholder.com/200")!, priceHistory: [], category: "카테고리C")
 ]
 
 // 미리보기
 struct LikesView_Previews: PreviewProvider {
     static var previews: some View {
-        LikesView(likedProducts: sampleProducts)
+        LikesView(favoriteService: MockFavoriteService())
     }
+}
+
+// Mock 서비스 (프리뷰용)
+class MockFavoriteService: FavoriteServiceProtocol {
+    func toggleFavorite(for productId: Int) async throws -> Bool { true }
+    func getFavorites() async throws -> [Int] { [1, 2, 3] }
+    func checkFavoriteStatus(for productId: Int) async throws -> Bool { true }
 }

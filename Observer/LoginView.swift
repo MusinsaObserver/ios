@@ -10,6 +10,8 @@ import GoogleSignIn
 import GoogleSignInSwift
 
 struct LoginView: View {
+    @State private var isHomeView = false
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -18,7 +20,7 @@ struct LoginView: View {
                 
                 VStack {
                     // 네비게이션 바
-                    NavigationBarView(title: "MUSINSA ⦁ OBSERVER")
+                    NavigationBarView(title: "MUSINSA ⦁ OBSERVER", isHomeView: $isHomeView)
                     
                     Spacer()
                     

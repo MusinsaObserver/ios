@@ -10,76 +10,130 @@ import GoogleSignIn
 import GoogleSignInSwift
 
 struct OAuth2LoginButton: View {
-    var clientID: String
-    var backendURL: String
-    var buttonText: String
-    var onSuccess: (String) -> Void
-    var onError: (Error) -> Void
+    private let viewModel: OAuth2LoginViewModel
     
-    var body: some View {
-        GoogleSignInButton {
-            signInWithGoogle()
-        }
-        .frame(height: 50)
-        .padding(.horizontal, Constants.Spacing.medium)
+    init(clientID: String, backendURL: String, buttonText: String, onSuccess: @escaping (String) -> Void, onError: @escaping (Error) -> Void) {
+        self.viewModel = OAuth2LoginViewModel(clientID: clientID, backendURL: backendURL, onSuccess: onSuccess, onError: onError)
     }
     
-    private func signInWithGoogle() {
+    var body: some View {
+        GoogleSignInButton(action: viewModel.signInWithGoogle)
+            .frame(height: 50)
+            .padding(.horizontal, Constants.Spacing.medium)
+    }
+}
+
+class OAuth2LoginViewModel: ObservableObject {
+    private let clientID: String
+    private let backendURL: String
+    private let onSuccess: (String) -> Void
+    private let onError: (Error) -> Void
+    private let authService: AuthenticationService
+    
+    init(clientID: String, backendURL: String, onSuccess: @escaping (String) -> Void, onError: @escaping (Error) -> Void, authService: AuthenticationService = GoogleAuthService()) {
+        self.clientID = clientID
+        self.backendURL = backendURL
+        self.onSuccess = onSuccess
+        self.onError = onError
+        self.authService = authService
+    }
+    
+    func signInWithGoogle() {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first(where: { $0.isKeyWindow }),
-              let rootViewController = window.rootViewController else {
-            print("Cannot find root view controller.")
+              let presentingViewController = windowScene.windows.first?.rootViewController else {
+            onError(OAuth2Error.noPresentingViewController)
             return
         }
         
-        GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
+        authService.signIn(presenting: presentingViewController) { [weak self] result in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success(let idToken):
+                self.authenticateWithBackend(idToken: idToken)
+            case .failure(let error):
+                self.onError(error)
+            }
+        }
+    }
+    
+    private func authenticateWithBackend(idToken: String) {
+        guard let url = URL(string: "\(backendURL)/api/auth/google/login") else {
+            onError(OAuth2Error.invalidBackendURL)
+            return
+        }
+
+        let request = AuthenticationRequest(url: url, idToken: idToken)
+        
+        URLSession.shared.dataTask(with: request.urlRequest) { [weak self] data, response, error in
+            guard let self = self else { return }
+            
             if let error = error {
-                onError(error)
+                self.onError(error)
+                return
+            }
+
+            do {
+                let jwt = try self.parseJWTFromResponse(data: data)
+                DispatchQueue.main.async {
+                    self.onSuccess(jwt)
+                }
+            } catch {
+                self.onError(error)
+            }
+        }.resume()
+    }
+    
+    private func parseJWTFromResponse(data: Data?) throws -> String {
+        guard let data = data,
+              let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+              let jwt = json["jwtToken"] as? String else {
+            throw OAuth2Error.invalidServerResponse
+        }
+        return jwt
+    }
+}
+
+protocol AuthenticationService {
+    func signIn(presenting: UIViewController, completion: @escaping (Result<String, Error>) -> Void)
+}
+
+struct GoogleAuthService: AuthenticationService {
+    func signIn(presenting: UIViewController, completion: @escaping (Result<String, Error>) -> Void) {
+        GIDSignIn.sharedInstance.signIn(withPresenting: presenting) { result, error in
+            if let error = error {
+                completion(.failure(error))
                 return
             }
             
             guard let user = result?.user,
-            let idToken = user.idToken?.tokenString else {
-                print("Failed to get ID token.")
+                  let idToken = user.idToken?.tokenString else {
+                completion(.failure(OAuth2Error.noIDToken))
                 return
             }
             
-            authenticateWithBackend(idToken: idToken)
+            completion(.success(idToken))
         }
     }
-    
-private func authenticateWithBackend(idToken: String) {
-        guard let url = URL(string: "\(backendURL)/api/auth/google/login") else {
-            print("Invalid backend URL.")
-            return
-        }
+}
 
+struct AuthenticationRequest {
+    let urlRequest: URLRequest
+    
+    init(url: URL, idToken: String) {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: ["idToken": idToken])
-
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                onError(error)
-                return
-            }
-
-            guard let data = data,
-                  let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                  let jwt = json["jwtToken"] as? String else {
-                print("Failed to parse response.")
-                return
-            }
-
-            // 성공적으로 JWT 수신
-            DispatchQueue.main.async {
-                onSuccess(jwt)
-            }
-        }
-
-        task.resume()
+        self.urlRequest = request
     }
+}
+
+enum OAuth2Error: Error {
+    case noPresentingViewController
+    case invalidBackendURL
+    case noIDToken
+    case invalidServerResponse
 }
 
 struct OAuth2LoginButton_Previews: PreviewProvider {

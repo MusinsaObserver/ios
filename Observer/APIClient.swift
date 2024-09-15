@@ -25,13 +25,17 @@ private enum APIEndpoints {
     static let deleteAccount = "/api/users/"
 }
 
+// MARK: - HTTP Methods
+private enum HTTPMethod: String {
+    case GET, POST, DELETE
+}
+
 // MARK: - API Client Protocol
 protocol APIClientProtocol {
     func searchProducts(query: String) async throws -> [ProductResponseDto]
     func getProductDetails(productId: Int) async throws -> ProductResponseDto
     func getLikedProducts(userId: String) async throws -> [ProductResponseDto]
-    func likeProduct(userId: String, productId: Int) async throws -> String
-    func unlikeProduct(userId: String, productId: Int) async throws -> String
+    func toggleProductLike(userId: String, productId: Int, like: Bool) async throws -> String
     func deleteAccount(userId: String) async throws -> Bool
 }
 
@@ -46,43 +50,43 @@ class APIClient: APIClientProtocol {
     }
     
     func searchProducts(query: String) async throws -> [ProductResponseDto] {
-        let endpoint = "\(APIEndpoints.search)?query=\(query)"
-        return try await performRequest(endpoint: endpoint, method: "GET")
+        let endpoint = "\(APIEndpoints.search)?query=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
+        return try await performRequest(endpoint: endpoint, method: .GET)
     }
     
     func getProductDetails(productId: Int) async throws -> ProductResponseDto {
         let endpoint = "\(APIEndpoints.productDetails)\(productId)"
-        return try await performRequest(endpoint: endpoint, method: "GET")
+        return try await performRequest(endpoint: endpoint, method: .GET)
     }
     
     func getLikedProducts(userId: String) async throws -> [ProductResponseDto] {
         let endpoint = "\(APIEndpoints.likedProducts)\(userId)"
-        return try await performRequest(endpoint: endpoint, method: "GET")
+        return try await performRequest(endpoint: endpoint, method: .GET)
     }
     
-    func likeProduct(userId: String, productId: Int) async throws -> String {
+    func toggleProductLike(userId: String, productId: Int, like: Bool) async throws -> String {
         let endpoint = String(format: APIEndpoints.likeProduct, userId, productId)
-        return try await performRequest(endpoint: endpoint, method: "POST")
-    }
-    
-    func unlikeProduct(userId: String, productId: Int) async throws -> String {
-        let endpoint = String(format: APIEndpoints.likeProduct, userId, productId)
-        return try await performRequest(endpoint: endpoint, method: "POST")
+        return try await performRequest(endpoint: endpoint, method: .POST, body: ["like": like])
     }
     
     func deleteAccount(userId: String) async throws -> Bool {
         let endpoint = "\(APIEndpoints.deleteAccount)\(userId)"
-        let _: EmptyResponse = try await performRequest(endpoint: endpoint, method: "DELETE")
+        let _: EmptyResponse = try await performRequest(endpoint: endpoint, method: .DELETE)
         return true
     }
     
-    private func performRequest<T: Decodable>(endpoint: String, method: String) async throws -> T {
+    private func performRequest<T: Decodable>(endpoint: String, method: HTTPMethod, body: [String: Any]? = nil) async throws -> T {
         guard let url = URL(string: "\(baseUrl)\(endpoint)") else {
             throw APIError.invalidURL
         }
         
         var request = URLRequest(url: url)
-        request.httpMethod = method
+        request.httpMethod = method.rawValue
+        
+        if let body = body {
+            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
         
         log(request: request)
         
@@ -119,6 +123,10 @@ class APIClient: APIClientProtocol {
         if let data = data, let bodyString = String(data: data, encoding: .utf8) {
             print("Body: \(bodyString)")
         }
+    }
+    
+    public func sendRequest<T: Decodable>(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> T {
+        return try await performRequest(endpoint: endpoint, method: HTTPMethod(rawValue: method) ?? .GET, body: body)
     }
 }
 
