@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AuthenticationServices
 
 struct LoginView: View {
     @State private var isHomeView = false
@@ -39,18 +40,16 @@ struct LoginView: View {
                     }
                     .padding(.bottom, Constants.Spacing.medium)
                     
-                    // Apple 로그인 버튼 (Google 로그인을 대체)
-                    Button(action: {
-                        performAppleSignIn()
-                    }) {
-                        Text("Apple로 계속하기")
-                            .font(Font.custom("Pretendard", size: 16).weight(.bold))
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.black)
-                            .cornerRadius(8)
-                    }
+                    // Apple Sign-In 버튼
+                    SignInWithAppleButton(
+                        .signIn,
+                        onRequest: { request in
+                            // Customize request if needed
+                        },
+                        onCompletion: handleAuthorization
+                    )
+                    .signInWithAppleButtonStyle(.white)
+                    .frame(height: 50)
                     .padding(.horizontal, Constants.Spacing.medium)
                     
                     Spacer()
@@ -82,24 +81,28 @@ struct LoginView: View {
         }
     }
     
-    func performAppleSignIn() {
-        // Simulate getting the ID token from Apple Sign-In
-        let idToken = "example_id_token"
-
-        Task {
-            do {
-                let sessionResponse = try await AuthAPIClient.shared.appleSignIn(idToken: idToken)
-
-                if sessionResponse.success {
-                    print("로그인 성공, 세션 시작됨")
-                    isHomeView = true
-                } else {
-                    loginError = "로그인 실패: \(sessionResponse.errorMessage ?? "알 수 없는 오류")"
-                }
-            } catch {
-                loginError = "로그인 중 오류 발생: \(error.localizedDescription)"
+    // Handle Apple Sign-In result
+    private func handleAuthorization(result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .success(let authorization):
+            if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+               let identityToken = appleIDCredential.identityToken,
+               let idTokenString = String(data: identityToken, encoding: .utf8) {
+                // Perform backend authentication with idTokenString
+                authenticateWithBackend(idToken: idTokenString)
+            } else {
+                // Handle error
+                print("No ID token received")
             }
+        case .failure(let error):
+            print("Error signing in: \(error.localizedDescription)")
         }
+    }
+    
+    private func authenticateWithBackend(idToken: String) {
+        // Add your backend authentication logic here
+        print("Received ID Token: \(idToken)")
+        // Example: Use SessionService to start a session
     }
 }
 
