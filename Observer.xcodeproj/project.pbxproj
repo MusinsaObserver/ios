@@ -33,6 +33,9 @@
 		F1B7356C2C96C265007A9844 /* SessionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1B7356B2C96C265007A9844 /* SessionService.swift */; };
 		F1B7356E2C96EC7F007A9844 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1B7356D2C96EC7F007A9844 /* SessionManager.swift */; };
 		F1B735702C983AAE007A9844 /* AgreementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1B7356F2C983AAE007A9844 /* AgreementView.swift */; };
+		F1B735762C984266007A9844 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = F1B735752C984266007A9844 /* .gitignore */; };
+		F1B735772C984266007A9844 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = F1B735752C984266007A9844 /* .gitignore */; };
+		F1B735782C984266007A9844 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = F1B735752C984266007A9844 /* .gitignore */; };
 		F1E65AD82C92E413008C6721 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E65AD72C92E413008C6721 /* AuthViewModel.swift */; };
 /* End PBXBuildFile section */
 
@@ -83,6 +86,7 @@
 		F1B7356B2C96C265007A9844 /* SessionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionService.swift; sourceTree = "<group>"; };
 		F1B7356D2C96EC7F007A9844 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 		F1B7356F2C983AAE007A9844 /* AgreementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgreementView.swift; sourceTree = "<group>"; };
+		F1B735752C984266007A9844 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		F1E65AD72C92E413008C6721 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -114,6 +118,7 @@
 		F17F2AAB2C900FC400C6804F = {
 			isa = PBXGroup;
 			children = (
+				F1B735752C984266007A9844 /* .gitignore */,
 				F17F2AB62C900FC400C6804F /* Observer */,
 				F17F2AC72C900FC600C6804F /* ObserverTests */,
 				F17F2AD12C900FC600C6804F /* ObserverUITests */,
@@ -297,6 +302,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F17F2ABF2C900FC500C6804F /* Preview Assets.xcassets in Resources */,
+				F1B735762C984266007A9844 /* .gitignore in Resources */,
 				F17F2ABC2C900FC500C6804F /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -305,6 +311,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1B735772C984266007A9844 /* .gitignore in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -312,6 +319,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1B735782C984266007A9844 /* .gitignore in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
