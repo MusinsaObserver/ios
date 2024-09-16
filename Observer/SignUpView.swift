@@ -140,6 +140,7 @@ struct SignUpView: View {
                 }
             }
         }
+        .navigationBarHidden(true) // Navigation bar 숨기기
     }
     
     // Handle Apple Sign-In result

@@ -180,6 +180,7 @@ struct ProductDetailView: View {
                 }
             }
         }
+        .navigationBarHidden(true) // Navigation bar 숨기기
     }
 
     private func handleLikeAction() async {

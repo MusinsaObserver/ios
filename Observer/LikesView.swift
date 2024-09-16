@@ -97,6 +97,7 @@ struct LikesView: View {
                 await fetchLikedProducts()
             }
         }
+        .navigationBarHidden(true) // Navigation bar 숨기기
     }
 
     private func fetchLikedProducts() async {

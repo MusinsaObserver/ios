@@ -31,6 +31,7 @@ struct HomeView: View {
                 }
             }
         }
+        .navigationBarHidden(true) // Navigation bar 숨기기
     }
     
     private var navigationBar: some View {
