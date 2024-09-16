@@ -7,10 +7,6 @@
 
 import Foundation
 
-struct RefreshSessionResponse: Codable {
-    let newSession: String
-}
-
 protocol SessionManagerProtocol {
     func saveSession(_ session: String)
     func getSession() -> String?

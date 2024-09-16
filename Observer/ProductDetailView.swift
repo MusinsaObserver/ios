@@ -13,176 +13,198 @@ struct ProductDetailView: View {
     @State private var showLoginAlert = false
     @State private var isShowingLogin = false
     @State private var isHomeView = false
-
-    let apiClient = APIClient(baseUrl: "https://your-api-base-url.com")
+    @State private var isShowingLikesView = false
+    @State private var isShowingLoginView = false
+    
+    @EnvironmentObject var authViewModel: AuthViewModel
+    
     let favoriteService: FavoriteServiceProtocol
-
+    
     init(product: ProductResponseDto, favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://your-api-base-url.com")!)) {
         self.product = product
         self.favoriteService = favoriteService
     }
-
+    
     // 세션 기반 로그인 상태 확인
     private var isLoggedIn: Bool {
-        // 세션이 존재하는지 확인하는 로직 (세션 쿠키나 상태를 확인)
-        return URLSession.shared.configuration.httpCookieStorage?.cookies?.first(where: { $0.name == "session" }) != nil
+        return authViewModel.isLoggedIn
     }
-
+    
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                NavigationBarView(title: "MUSINSA ⦁ OBSERVER", isHomeView: $isHomeView)
-                ScrollView {
-                    VStack(spacing: 8) {
-                        // 상품 이미지
-                        AsyncImage(url: product.imageUrl) { image in
-                            image
-                                .resizable()
-                                .scaledToFit()
-                        } placeholder: {
-                            ProgressView()
-                                .frame(height: 300)
-                        }
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            // 브랜드명
-                            Text(product.brand)
-                                .font(.caption)
-                                .foregroundColor(.gray)
-
-                            // 상품명
-                            Text(product.name)
-                                .font(.headline)
-                                .foregroundColor(.white)
-
-                            // 하트 버튼
-                            HStack {
-                                Button(action: {
-                                    if isLoggedIn {
-                                        isLiked.toggle()
-                                        Task {
-                                            await handleLikeAction()
-                                        }
-                                    } else {
-                                        showLoginAlert = true
-                                    }
-                                }) {
-                                    Image(systemName: isLiked ? "heart.fill" : "heart")
-                                        .foregroundColor(isLiked ? .red : .white)
-                                        .font(.system(size: 24))
-                                }
-                                .alert(isPresented: $showLoginAlert) {
-                                    Alert(
-                                        title: Text("로그인 필요"),
-                                        message: Text("로그인 후 사용 가능한 기능입니다."),
-                                        primaryButton: .default(Text("로그인"), action: {
-                                            isShowingLogin = true
-                                        }),
-                                        secondaryButton: .cancel()
-                                    )
-                                }
-
-                                Spacer()
+            ZStack(alignment: .top) {
+                Constants.Colors.backgroundDarkGrey
+                    .edgesIgnoringSafeArea(.all)
+                
+                VStack(spacing: 0) {
+                    Spacer().frame(height: navigationBarHeight)
+                    
+                    ScrollView {
+                        VStack(spacing: 8) {
+                            // 상품 이미지
+                            AsyncImage(url: product.imageUrl) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                            } placeholder: {
+                                ProgressView()
+                                    .frame(height: 300)
                             }
-                            .padding(.vertical, 8)
-                        }
-                        .padding(.horizontal, 16)
-
-                        // 무신사 구매 링크
-                        Button(action: {
-                            UIApplication.shared.open(product.url)
-                        }) {
-                            Text("무신사 구매 링크")
-                                .font(.custom("Pretendard", size: 14))
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white)
-                                .foregroundColor(.black)
-                                .cornerRadius(8)
-                        }
-                        .padding(.horizontal, 16)
-
-                        // 할인 정보
-                        Text("\(product.discountRate) \(formatPrice(product.price))원")
-                            .font(.title2)
-                            .foregroundColor(.red)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 4)
-
-                        // 가격 그래프 추가
-                        VStack(alignment: .leading) {
-                            Text("가격 그래프")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            PriceHistoryChartView(priceHistory: product.priceHistory)
-                                .frame(height: 250) // 그래프의 높이 설정
-                        }
-                        .padding(.horizontal, 16)
-
-                        // 가격 정보
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("정가: \(formatPrice(24200))")
-                            Text("최고 할인가: \(formatPrice(21900))")
-                            Text("최저 할인가: \(formatPrice(12800))")
-                            Text("평균 가격: \(formatPrice(17350))")
-                        }
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.8))
-                        .padding(.horizontal, 16)
-
-                        // 로그인하지 않은 경우 표시할 추가 UI
-                        if !isLoggedIn {
-                            VStack(spacing: 8) {
-                                Text("로그인 시 찜하기 및 가격 변동 알림받기 기능을 사용할 수 있습니다.")
-                                    .font(.custom("Pretendard", size: 14))
-                                    .foregroundColor(.white.opacity(0.8))
-                                    .multilineTextAlignment(.center)
-
-                                Button(action: {
-                                    isShowingLogin = true
-                                }) {
-                                    Text("로그인")
-                                        .font(.custom("Pretendard", size: 14).weight(.bold))
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.white)
-                                        .foregroundColor(.black)
-                                        .cornerRadius(8)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.top, 16)
-                        }
-
-                        // 추천 유사 상품
-                        VStack(alignment: .leading) {
-                            Text("추천 유사 상품")
-                                .font(.headline)
-                                .foregroundColor(.white)
-
-                            ScrollView(.horizontal) {
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                // 브랜드명
+                                Text(product.brand)
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                
+                                // 상품명
+                                Text(product.name)
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                
+                                // 하트 버튼
                                 HStack {
-                                    ForEach(recommendedProducts) { product in
-                                        NavigationLink(destination: ProductDetailView(product: product, favoriteService: favoriteService)) {
-                                            ProductCardView(product: product, favoriteService: favoriteService)
+                                    Button(action: {
+                                        if isLoggedIn {
+                                            isLiked.toggle()
+                                            Task {
+                                                await handleLikeAction()
+                                            }
+                                        } else {
+                                            showLoginAlert = true
                                         }
+                                    }) {
+                                        Image(systemName: isLiked ? "heart.fill" : "heart")
+                                            .foregroundColor(isLiked ? .red : .white)
+                                            .font(.system(size: 24))
+                                    }
+                                    .alert(isPresented: $showLoginAlert) {
+                                        Alert(
+                                            title: Text("로그인 필요"),
+                                            message: Text("로그인 후 사용 가능한 기능입니다."),
+                                            primaryButton: .default(Text("로그인"), action: {
+                                                isShowingLoginView = true
+                                            }),
+                                            secondaryButton: .cancel()
+                                        )
+                                    }
+                                    
+                                    Spacer()
+                                }
+                                .padding(.vertical, 8)
+                            }
+                            .padding(.horizontal, 16)
+                            
+                            // 무신사 구매 링크
+                            Button(action: {
+                                UIApplication.shared.open(product.url)
+                            }) {
+                                Text("무신사 구매 링크")
+                                    .font(.custom("Pretendard", size: 14))
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.white)
+                                    .foregroundColor(.black)
+                                    .cornerRadius(8)
+                            }
+                            .padding(.horizontal, 16)
+                            
+                            // 할인 정보
+                            Text("\(product.discountRate) \(formatPrice(product.price))원")
+                                .font(.title2)
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 4)
+                            
+                            // 가격 그래프 추가
+                            VStack(alignment: .leading) {
+                                Text("가격 그래프")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                PriceHistoryChartView(priceHistory: product.priceHistory)
+                                    .frame(height: 250) // 그래프의 높이 설정
+                            }
+                            .padding(.horizontal, 16)
+                            
+                            // 가격 정보
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("정가: \(formatPrice(product.originalPrice))")
+                                Text("현재 가격: \(formatPrice(product.price))")
+                                // 추가 가격 정보는 필요에 따라 추가하세요
+                            }
+                            .font(.body)
+                            .foregroundColor(.white.opacity(0.8))
+                            .padding(.horizontal, 16)
+                            
+                            // 로그인하지 않은 경우 표시할 추가 UI
+                            if !isLoggedIn {
+                                VStack(spacing: 8) {
+                                    Text("로그인 시 찜하기 및 가격 변동 알림받기 기능을 사용할 수 있습니다.")
+                                        .font(.custom("Pretendard", size: 14))
+                                        .foregroundColor(.white.opacity(0.8))
+                                        .multilineTextAlignment(.center)
+                                    
+                                    Button(action: {
+                                        isShowingLoginView = true
+                                    }) {
+                                        Text("로그인")
+                                            .font(.custom("Pretendard", size: 14).weight(.bold))
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(Color.white)
+                                            .foregroundColor(.black)
+                                            .cornerRadius(8)
                                     }
                                 }
                                 .padding(.horizontal, 16)
+                                .padding(.top, 16)
+                            }
+                            
+                            // 추천 유사 상품
+                            VStack(alignment: .leading) {
+                                Text("추천 유사 상품")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                
+                                ScrollView(.horizontal) {
+                                    HStack {
+                                        ForEach(recommendedProducts) { product in
+                                            NavigationLink(destination: ProductDetailView(product: product, favoriteService: favoriteService)) {
+                                                ProductCardView(product: product, favoriteService: favoriteService)
+                                            }
+                                        }
+                                    }
+                                    .padding(.horizontal, 16)
+                                }
                             }
                         }
                     }
+                    .background(Constants.Colors.backgroundDarkGrey)
+                    .edgesIgnoringSafeArea(.all)
+                    .navigationDestination(isPresented: $isShowingLoginView) {
+                        LoginView()
+                    }
                 }
-                .background(Constants.Colors.backgroundDarkGrey)
-                .edgesIgnoringSafeArea(.all)
-                .navigationDestination(isPresented: $isShowingLogin) {
-                    LoginView() // 로그인 페이지로 이동
-                }
+                
+                navigationBar
             }
         }
         .navigationBarHidden(true) // Navigation bar 숨기기
     }
-
+    
+    private var navigationBarHeight: CGFloat {
+        44 // Navigation bar height without safe area inset
+    }
+    
+    private var navigationBar: some View {
+        NavigationBarView(
+            title: "MUSINSA ⦁ OBSERVER",
+            isHomeView: $isHomeView,
+            isShowingLikesView: $isShowingLikesView,
+            isShowingLoginView: $isShowingLoginView
+        )
+    }
+    
     private func handleLikeAction() async {
         do {
             isLiked = try await favoriteService.toggleFavorite(for: product.id)
@@ -192,10 +214,10 @@ struct ProductDetailView: View {
             isLiked.toggle() // 실패 시, 원래 상태로 되돌리기
         }
     }
-
+    
     private func formatPrice(_ price: Int) -> String {
         let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
+        formatter.numberStyle = .decimal
         formatter.locale = Locale(identifier: "ko_KR")
         return formatter.string(from: NSNumber(value: price)) ?? "\(price)원"
     }
@@ -220,6 +242,7 @@ struct ProductDetailView_Previews: PreviewProvider {
             priceHistory: samplePriceHistory,
             category: "테스트 카테고리"
         ), favoriteService: MockFavoriteService())
+        .environmentObject(AuthViewModel(authClient: MockAuthAPIClient(), sessionService: MockSessionService()))
     }
 }
 

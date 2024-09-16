@@ -9,7 +9,6 @@ import SwiftUI
 import AuthenticationServices
 
 struct SignUpView: View {
-    
     @State private var agreeAll = false
     @State private var agreeTerms = false
     @State private var agreePrivacy = false
@@ -20,6 +19,9 @@ struct SignUpView: View {
     @State private var showThirdPartyPopup = false
     
     @State private var isHomeView = false
+    @State private var isShowingLoginView = false
+    
+    @EnvironmentObject var authViewModel: AuthViewModel
     
     var body: some View {
         NavigationStack {
@@ -28,7 +30,7 @@ struct SignUpView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack {
-                    NavigationBarView(title: "MUSINSA ⦁ OBSERVER", isHomeView: $isHomeView)
+                    navigationBar
                     
                     Spacer()
                     
@@ -48,7 +50,7 @@ struct SignUpView: View {
                     // 동의 항목들
                     VStack(alignment: .leading, spacing: Constants.Spacing.medium) {
                         CheckBoxView(isChecked: $agreeAll, text: "전체 동의")
-                            .onChange(of: agreeAll) {
+                            .onChange(of: agreeAll) { _ in
                                 agreeTerms = agreeAll
                                 agreePrivacy = agreeAll
                                 agreeThirdParty = agreeAll
@@ -106,6 +108,7 @@ struct SignUpView: View {
                     .signInWithAppleButtonStyle(.white)
                     .frame(height: 50)
                     .padding(.horizontal, Constants.Spacing.medium)
+                    .disabled(!agreeTerms || !agreePrivacy || !agreeThirdParty)
                     
                     Spacer() // 홈 인디케이터 위에 위치하도록 여유 공간 추가
                         .frame(height: 20)
@@ -139,8 +142,20 @@ struct SignUpView: View {
                     )
                 }
             }
+            .navigationBarHidden(true)
+            .navigationDestination(isPresented: $isShowingLoginView) {
+                LoginView()
+            }
         }
-        .navigationBarHidden(true) // Navigation bar 숨기기
+    }
+    
+    private var navigationBar: some View {
+        NavigationBarView(
+            title: "MUSINSA ⦁ OBSERVER",
+            isHomeView: $isHomeView,
+            isShowingLikesView: .constant(false),
+            isShowingLoginView: $isShowingLoginView
+        )
     }
     
     // Handle Apple Sign-In result
@@ -162,9 +177,23 @@ struct SignUpView: View {
     }
     
     private func authenticateWithBackend(idToken: String) {
-        // Add your backend authentication logic here
-        print("Received ID Token: \(idToken)")
-        // Example: Use SessionService to start a session
+        Task {
+            do {
+                let sessionResponse = try await authViewModel.authClient.appleSignIn(idToken: idToken)
+                if let session = sessionResponse.session {
+                    await MainActor.run {
+                        authViewModel.saveSession(session)
+                        authViewModel.user = sessionResponse.user
+                        authViewModel.isLoggedIn = true
+                        isHomeView = true // Navigate to HomeView
+                    }
+                } else {
+                    print(sessionResponse.errorMessage ?? "Authentication failed")
+                }
+            } catch {
+                print("Authentication error: \(error.localizedDescription)")
+            }
+        }
     }
     
     // 약관 내용들
@@ -273,6 +302,11 @@ struct TermsPopupView: View {
 
 struct SignUpView_Previews: PreviewProvider {
     static var previews: some View {
-        SignUpView()
+        let mockAuthViewModel = AuthViewModel(
+            authClient: MockAuthAPIClient(),
+            sessionService: MockSessionService()
+        )
+        return SignUpView()
+            .environmentObject(mockAuthViewModel)
     }
 }

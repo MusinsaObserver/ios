@@ -11,15 +11,19 @@ struct HomeView: View {
     @State private var searchQuery = ""
     @State private var isShowingSearchResults = false
     @State private var isHomeView = true
+    @State private var isShowingLikesView = false
+    @State private var isShowingLoginView = false
+
+    @EnvironmentObject var authViewModel: AuthViewModel
 
     var body: some View {
         NavigationStack {
-            ZStack {
+            ZStack(alignment: .top) {
                 Constants.Colors.backgroundDarkGrey
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: Constants.Spacing.medium) {
-                    navigationBar
+                    Spacer().frame(height: navigationBarHeight)
                     searchBar
                     Spacer()
                     descriptionText
@@ -29,13 +33,30 @@ struct HomeView: View {
                 .navigationDestination(isPresented: $isShowingSearchResults) {
                     SearchResultsView(searchQuery: searchQuery)
                 }
+                .navigationDestination(isPresented: $isShowingLikesView) {
+                    LikesView(apiClient: APIClient(baseUrl: "https://your-api-url.com"), userId: authViewModel.user?.id ?? "")
+                }
+                .navigationDestination(isPresented: $isShowingLoginView) {
+                    LoginView()
+                }
+                
+                navigationBar
             }
         }
-        .navigationBarHidden(true) // Navigation bar 숨기기
+        .navigationBarHidden(true)
+    }
+    
+    private var navigationBarHeight: CGFloat {
+        44
     }
     
     private var navigationBar: some View {
-        NavigationBarView(title: "MUSINSA ⦁ OBSERVER", isHomeView: $isHomeView)
+        NavigationBarView(
+            title: "MUSINSA ⦁ OBSERVER",
+            isHomeView: $isHomeView,
+            isShowingLikesView: $isShowingLikesView,
+            isShowingLoginView: $isShowingLoginView
+        )
     }
     
     private var searchBar: some View {
@@ -44,7 +65,7 @@ struct HomeView: View {
             performApiRequest()
         }
         .padding(.horizontal, Constants.Spacing.medium)
-        .padding(.bottom, Constants.Spacing.large)
+        .padding(.top, Constants.Spacing.large)
     }
     
     private var descriptionText: some View {
@@ -87,27 +108,31 @@ struct HomeView: View {
     }
     
     private func performApiRequest() {
-        // Use session-based authentication
-        guard let sessionId = getSessionId() else {
+        guard let sessionId = authViewModel.getSessionId() else {
             print("No session ID found")
             return
         }
         
-        var request = URLRequest(url: URL(string: "https://your-api-url.com")!)
+        guard let url = URL(string: "https://your-api-url.com") else {
+            print("Invalid URL")
+            return
+        }
+        
+        var request = URLRequest(url: url)
         request.setValue("Session \(sessionId)", forHTTPHeaderField: "Authorization")
         
         URLSession.shared.dataTask(with: request) { data, response, error in
-            // API 응답 처리
         }.resume()
-    }
-    
-    private func getSessionId() -> String? {
-        return UserDefaults.standard.string(forKey: "sessionId")
     }
 }
 
 struct HomeView_Previews: PreviewProvider {
     static var previews: some View {
-        HomeView()
+        let mockAuthViewModel = AuthViewModel(
+            authClient: MockAuthAPIClient(),
+            sessionService: MockSessionService()
+        )
+        return HomeView()
+            .environmentObject(mockAuthViewModel)
     }
 }
