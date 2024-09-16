@@ -36,6 +36,9 @@ struct LoginView: View {
                         .navigationDestination(isPresented: $showAgreementsView) {  // 약관 동의 화면으로 이동
                             AgreementView()
                         }
+                        .navigationDestination(isPresented: $isHomeView) {  // 홈 화면으로 이동
+                            HomeView()
+                        }
                 }
                 
                 navigationBar
@@ -140,17 +143,21 @@ struct LoginView: View {
                                 }
                             }
                         } else {
-                            print(sessionResponse.errorMessage ?? "인증 실패")
+                            await MainActor.run {
+                                self.loginError = sessionResponse.errorMessage ?? "인증 실패"
+                            }
                         }
                     } catch {
-                        print("인증 오류: \(error.localizedDescription)")
+                        await MainActor.run {
+                            self.loginError = error.localizedDescription
+                        }
                     }
                 }
             } else {
-                print("ID 토큰을 받지 못했습니다.")
+                loginError = "ID 토큰을 받지 못했습니다."
             }
         case .failure(let error):
-            print("로그인 오류: \(error.localizedDescription)")
+            loginError = "로그인 오류: \(error.localizedDescription)"
         }
     }
 }

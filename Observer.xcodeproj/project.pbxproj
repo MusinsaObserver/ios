@@ -134,6 +134,7 @@
 		F17F2AB62C900FC400C6804F /* Observer */ = {
 			isa = PBXGroup;
 			children = (
+				F1B7356F2C983AAE007A9844 /* AgreementView.swift */,
 				F17F2AF72C9011F800C6804F /* APIClient.swift */,
 				F1B735692C96C092007A9844 /* AppleSignInService.swift */,
 				F1E65AD72C92E413008C6721 /* AuthViewModel.swift */,
@@ -157,7 +158,6 @@
 				F17F2AFF2C9016DD00C6804F /* SignUpView.swift */,
 				F17F2ABB2C900FC500C6804F /* Assets.xcassets */,
 				F17F2ABD2C900FC500C6804F /* Preview Content */,
-				F1B7356F2C983AAE007A9844 /* AgreementView.swift */,
 			);
 			path = Observer;
 			sourceTree = "<group>";

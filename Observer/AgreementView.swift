@@ -27,13 +27,8 @@ struct AgreementView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: Constants.Spacing.medium) {
-                    // 네비게이션 바
-                    NavigationBarView(
-                        title: "약관 동의",
-                        isHomeView: $isHomeView,
-                        isShowingLikesView: .constant(false),
-                        isShowingLoginView: .constant(false)
-                    )
+                    
+                    Spacer().frame(height: 150)
                     
                     // 약관 동의 설명 텍스트
                     Text("서비스 이용을 위해\n필수 약관에 동의해주세요.")
@@ -131,6 +126,11 @@ struct AgreementView: View {
                         )
                     }
                 }
+                
+                // HomeView로 이동
+                NavigationLink(destination: HomeView(), isActive: $isHomeView) {
+                    EmptyView()
+                }
             }
         }
         .navigationBarHidden(true)
@@ -142,9 +142,8 @@ struct AgreementView: View {
     
     private func completeSignUp() {
         // 약관 동의 후 회원가입 완료 로직
-        // 성공하면 홈 화면으로 이동
         authViewModel.isLoggedIn = true
-        isHomeView = true
+        isHomeView = true // 약관 동의 후 HomeView로 이동
     }
 
     // 약관 내용들 (간단히 작성)
@@ -158,5 +157,18 @@ struct AgreementView: View {
 
     func thirdPartyPolicyContent() -> String {
         return "개인정보 제3자 제공 동의 내용이 여기에 표시됩니다."
+    }
+}
+
+// 프리뷰
+struct AgreementView_Previews: PreviewProvider {
+    static var previews: some View {
+        let mockAuthViewModel = AuthViewModel(
+            authClient: MockAuthAPIClient(),
+            sessionService: MockSessionService()
+        )
+        
+        return AgreementView()
+            .environmentObject(mockAuthViewModel)
     }
 }

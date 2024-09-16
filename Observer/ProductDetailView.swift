@@ -37,7 +37,8 @@ struct ProductDetailView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: 0) {
-                    Spacer().frame(height: navigationBarHeight)
+                    // 화면을 위로 올리기 위해 Spacer 조정
+                    Spacer().frame(height: 20)
                     
                     ScrollView {
                         VStack(spacing: 8) {
@@ -130,7 +131,6 @@ struct ProductDetailView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("정가: \(formatPrice(product.originalPrice))")
                                 Text("현재 가격: \(formatPrice(product.price))")
-                                // 추가 가격 정보는 필요에 따라 추가하세요
                             }
                             .font(.body)
                             .foregroundColor(.white.opacity(0.8))
@@ -169,8 +169,33 @@ struct ProductDetailView: View {
                                 ScrollView(.horizontal) {
                                     HStack {
                                         ForEach(recommendedProducts) { product in
-                                            NavigationLink(destination: ProductDetailView(product: product, favoriteService: favoriteService)) {
+                                            VStack {
                                                 ProductCardView(product: product, favoriteService: favoriteService)
+                                                // 추천 상품의 하트 버튼에 팝업 추가
+                                                Button(action: {
+                                                    if isLoggedIn {
+                                                        isLiked.toggle()
+                                                        Task {
+                                                            await handleLikeAction()
+                                                        }
+                                                    } else {
+                                                        showLoginAlert = true
+                                                    }
+                                                }) {
+                                                    Image(systemName: isLiked ? "heart.fill" : "heart")
+                                                        .foregroundColor(isLiked ? .red : .white)
+                                                        .font(.system(size: 24))
+                                                }
+                                                .alert(isPresented: $showLoginAlert) {
+                                                    Alert(
+                                                        title: Text("로그인 필요"),
+                                                        message: Text("로그인 후 사용 가능한 기능입니다."),
+                                                        primaryButton: .default(Text("로그인"), action: {
+                                                            isShowingLoginView = true
+                                                        }),
+                                                        secondaryButton: .cancel()
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -222,6 +247,7 @@ struct ProductDetailView: View {
         return formatter.string(from: NSNumber(value: price)) ?? "\(price)원"
     }
 }
+
 
 let recommendedProducts: [ProductResponseDto] = [
     ProductResponseDto(id: 1, brand: "후크", name: "빈티지 워싱 네이비 체크셔츠", price: 43900, discountRate: "53%", originalPrice: 90000, url: URL(string: "https://example.com/product/1")!, imageUrl: URL(string: "https://example.com/image1.jpg")!, priceHistory: samplePriceHistory, category: "셔츠"),
