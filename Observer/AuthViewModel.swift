@@ -191,12 +191,6 @@ struct LoginResponse: Codable {
     let user: User
 }
 
-struct SessionResponse: Codable {
-    let session: String?
-    let user: User?
-    let errorMessage: String?
-}
-
 struct RefreshSessionResponse: Codable {
     let newSession: String
 }
@@ -217,8 +211,8 @@ class MockAuthAPIClient: AuthAPIClientProtocol {
     }
     
     func appleSignIn(idToken: String) async throws -> SessionResponse {
-        // Mock implementation
-        return SessionResponse(session: "mock_session", user: User(id: "1", username: "MockUser", email: "mock@example.com"), errorMessage: nil)
+        // Mock implementation with isNewUser added
+        return SessionResponse(session: "mock_session", user: User(id: "1", username: "MockUser", email: "mock@example.com"), isNewUser: true, errorMessage: nil)
     }
 }
 #endif

@@ -13,6 +13,7 @@ struct LoginView: View {
     @State private var loginError: String? = nil
     @State private var isShowingSignUpView = false
     @State private var isLoggedIn = false
+    @State private var showAgreementsView = false  // 신규 사용자 약관 동의 화면 표시 상태 추가
     
     @EnvironmentObject var authViewModel: AuthViewModel
     
@@ -31,6 +32,9 @@ struct LoginView: View {
                         }
                         .navigationDestination(isPresented: $isLoggedIn) {
                             HomeView()
+                        }
+                        .navigationDestination(isPresented: $showAgreementsView) {  // 약관 동의 화면으로 이동
+                            AgreementView()
                         }
                 }
                 
@@ -112,44 +116,41 @@ struct LoginView: View {
             if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
                let identityToken = appleIDCredential.identityToken,
                let idTokenString = String(data: identityToken, encoding: .utf8) {
-                // Perform backend authentication with idTokenString
-                authenticateWithBackend(idToken: idTokenString)
-            } else {
-                // Handle error
-                print("No ID token received")
-                DispatchQueue.main.async {
-                    self.loginError = "No ID token received"
+
+                // 백엔드 인증 요청
+                Task {
+                    do {
+                        let sessionResponse = try await authViewModel.authClient.appleSignIn(idToken: idTokenString)
+                        if let session = sessionResponse.session {
+                            await MainActor.run {
+                                authViewModel.saveSession(session)
+                                authViewModel.user = sessionResponse.user
+                                authViewModel.isLoggedIn = true
+                            }
+
+                            if sessionResponse.isNewUser ?? false {
+                                // 신규 사용자라면 약관 동의 화면으로 이동
+                                await MainActor.run {
+                                    showAgreementsView = true  // 약관 동의 화면으로 이동
+                                }
+                            } else {
+                                // 기존 사용자라면 홈 화면으로 이동
+                                await MainActor.run {
+                                    isHomeView = true
+                                }
+                            }
+                        } else {
+                            print(sessionResponse.errorMessage ?? "인증 실패")
+                        }
+                    } catch {
+                        print("인증 오류: \(error.localizedDescription)")
+                    }
                 }
+            } else {
+                print("ID 토큰을 받지 못했습니다.")
             }
         case .failure(let error):
-            print("Error signing in: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                self.loginError = error.localizedDescription
-            }
-        }
-    }
-    
-    private func authenticateWithBackend(idToken: String) {
-        Task {
-            do {
-                let sessionResponse = try await authViewModel.authClient.appleSignIn(idToken: idToken)
-                if let session = sessionResponse.session {
-                    await MainActor.run {
-                        authViewModel.saveSession(session)
-                        authViewModel.user = sessionResponse.user
-                        authViewModel.isLoggedIn = true
-                        self.isLoggedIn = true
-                    }
-                } else {
-                    await MainActor.run {
-                        self.loginError = sessionResponse.errorMessage ?? "Authentication failed"
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    self.loginError = error.localizedDescription
-                }
-            }
+            print("로그인 오류: \(error.localizedDescription)")
         }
     }
 }
