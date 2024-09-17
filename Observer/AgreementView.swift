@@ -128,8 +128,13 @@ struct AgreementView: View {
                 }
                 
                 // HomeView로 이동
-                NavigationLink(destination: HomeView(), isActive: $isHomeView) {
+                NavigationLink(value: "HomeView", label: {
                     EmptyView()
+                })
+                .navigationDestination(for: String.self) { value in
+                    if value == "HomeView" {
+                        HomeView()
+                    }
                 }
             }
         }

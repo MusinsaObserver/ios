@@ -51,10 +51,10 @@ struct SignUpView: View {
                     // 동의 항목들
                     VStack(alignment: .leading, spacing: Constants.Spacing.medium) {
                         CheckBoxView(isChecked: $agreeAll, text: "전체 동의")
-                            .onChange(of: agreeAll) { newValue in
-                                agreeTerms = newValue
-                                agreePrivacy = newValue
-                                agreeThirdParty = newValue
+                            .onChange(of: agreeAll) {
+                                agreeTerms = agreeAll
+                                agreePrivacy = agreeAll
+                                agreeThirdParty = agreeAll
                             }
                         
                         HStack {
