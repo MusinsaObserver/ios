@@ -12,11 +12,7 @@ struct ProductDetailView: View {
     @State private var isLiked = false
     @State private var showLoginAlert = false
     @State private var isShowingLogin = false
-    @State private var isHomeView = false
-    @State private var isShowingLikesView = false
-    @State private var isShowingLoginView = false
-    
-    let apiClient = APIClient(baseUrl: "https://your-api-base-url.com")
+
     let favoriteService: FavoriteServiceProtocol
 
     init(product: ProductResponseDto, favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://your-api-base-url.com")!)) {
@@ -25,43 +21,33 @@ struct ProductDetailView: View {
     }
 
     private var isLoggedIn: Bool {
-        // Replace with your session check logic to verify if the user is logged in
-        return URLSession.shared.configuration.httpCookieStorage?.cookies?.first(where: { $0.name == "session" }) != nil
+        // 세션 확인 로직
+        return SessionManager().getSession() != nil
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Pass the missing arguments to NavigationBarView
-                NavigationBarView(
-                    title: "MUSINSA ⦁ OBSERVER",
-                    isHomeView: $isHomeView,
-                    isShowingLikesView: $isShowingLikesView,
-                    isShowingLoginView: $isShowingLoginView
-                )
-                ScrollView {
-                    VStack(spacing: 8) {
-                        productImageSection
-                        productDetailsSection
-                        actionButtonsSection
-                        priceGraphSection
-                        priceInfoSection
-
-                        if !isLoggedIn {
-                            loginReminderSection
-                        }
-
-                        recommendedProductsSection
-                    }
-                }
-                .background(Constants.Colors.backgroundDarkGrey)
-                .edgesIgnoringSafeArea(.all)
-                .navigationDestination(isPresented: $isShowingLogin) {
-                    LoginView() // Navigate to login page
+        VStack(spacing: 0) {
+            // 네비게이션 바 추가
+            NavigationBarView(
+                title: "MUSINSA ⦁ OBSERVER",
+                isHomeView: .constant(false),
+                isShowingLikesView: .constant(false),
+                isShowingLoginView: .constant(false)
+            )
+            .padding(.top, safeAreaTop())
+            
+            ScrollView {
+                VStack(spacing: 8) {
+                    productImageSection
+                    productDetailsSection
+                    actionButtonsSection
+                    priceGraphSection
+                    priceInfoSection
                 }
             }
+            .background(Constants.Colors.backgroundDarkGrey)
+            .edgesIgnoringSafeArea(.all)
         }
-        .navigationBarHidden(true)
         .onAppear {
             Task {
                 do {
@@ -98,15 +84,20 @@ struct ProductDetailView: View {
 
     private var productDetailsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(product.brand)
-                .font(.caption)
-                .foregroundColor(.gray)
-
-            Text(product.name)
-                .font(.headline)
-                .foregroundColor(.white)
-
+            // 브랜드 이름과 상품 이름, 오른쪽에 하트 버튼
             HStack {
+                VStack(alignment: .leading) {
+                    Text(product.brand)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    Text(product.name)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                }
+
+                Spacer()
+
                 Button(action: {
                     handleLikeAction()
                 }) {
@@ -124,16 +115,14 @@ struct ProductDetailView: View {
                         secondaryButton: .cancel()
                     )
                 }
-
-                Spacer()
             }
-            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
         }
-        .padding(.horizontal, 16)
     }
 
     private var actionButtonsSection: some View {
-        VStack(spacing: 8) {
+        HStack {
+            // 무신사 구매 링크 버튼
             Button(action: {
                 UIApplication.shared.open(product.url)
             }) {
@@ -145,14 +134,21 @@ struct ProductDetailView: View {
                     .foregroundColor(.black)
                     .cornerRadius(8)
             }
-            .padding(.horizontal, 16)
             
-            Text("\(product.discountRate) \(formatPrice(product.price))원")
-                .font(.title2)
-                .foregroundColor(.red)
-                .padding(.horizontal, 16)
-                .padding(.top, 4) // Correct usage of padding
+            Spacer()
+            
+            // 할인율과 가격
+            VStack(alignment: .trailing) {
+                Text("\(product.discountRate)")
+                    .font(.title3)
+                    .foregroundColor(.red)
+                
+                Text("\(formatPrice(product.price))원")
+                    .font(.title2)
+                    .foregroundColor(.white)
+            }
         }
+        .padding(.horizontal, 16)
     }
 
     private var priceGraphSection: some View {
@@ -169,56 +165,27 @@ struct ProductDetailView: View {
 
     private var priceInfoSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("정가: \(formatPrice(24200))")
-            Text("최고 할인가: \(formatPrice(21900))")
-            Text("최저 할인가: \(formatPrice(12800))")
-            Text("평균 가격: \(formatPrice(17350))")
+            HStack {
+                Text("정가:")
+                Spacer()
+                Text(formatPrice(product.originalPrice))
+            }
+            
+            HStack {
+                Text("최저가:")
+                Spacer()
+                Text(formatPrice(12800))  // 예시 데이터
+            }
+            
+            HStack {
+                Text("최고가:")
+                Spacer()
+                Text(formatPrice(21900))  // 예시 데이터
+            }
         }
         .font(.body)
         .foregroundColor(.white.opacity(0.8))
         .padding(.horizontal, 16)
-    }
-
-    private var loginReminderSection: some View {
-        VStack(spacing: 8) {
-            Text("로그인 시 찜하기 및 가격 변동 알림받기 기능을 사용할 수 있습니다.")
-                .font(.custom("Pretendard", size: 14))
-                .foregroundColor(.white.opacity(0.8))
-                .multilineTextAlignment(.center)
-
-            Button(action: {
-                isShowingLogin = true
-            }) {
-                Text("로그인")
-                    .font(.custom("Pretendard", size: 14).weight(.bold))
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.white)
-                    .foregroundColor(.black)
-                    .cornerRadius(8)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
-    }
-
-    private var recommendedProductsSection: some View {
-        VStack(alignment: .leading) {
-            Text("추천 유사 상품")
-                .font(.headline)
-                .foregroundColor(.white)
-
-            ScrollView(.horizontal) {
-                HStack {
-                    ForEach(recommendedProducts) { product in
-                        NavigationLink(destination: ProductDetailView(product: product, favoriteService: favoriteService)) {
-                            ProductCardView(product: product, favoriteService: favoriteService)
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-            }
-        }
     }
 
     // MARK: - Helper Functions
@@ -243,15 +210,19 @@ struct ProductDetailView: View {
         formatter.locale = Locale(identifier: "ko_KR")
         return formatter.string(from: NSNumber(value: price)) ?? "\(price)원"
     }
+
+    // iOS 15에서 윈도우 접근 방법 수정
+    private func safeAreaTop() -> CGFloat {
+        return UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?
+            .windows
+            .first?
+            .safeAreaInsets.top ?? 0
+    }
 }
 
-// Mock recommended products for preview
-let recommendedProducts: [ProductResponseDto] = [
-    ProductResponseDto(id: 1, brand: "후크", name: "빈티지 워싱 네이비 체크셔츠", price: 43900, discountRate: "53%", originalPrice: 90000, url: URL(string: "https://example.com/product/1")!, imageUrl: URL(string: "https://example.com/image1.jpg")!, priceHistory: samplePriceHistory, category: "셔츠"),
-    ProductResponseDto(id: 2, brand: "이즈", name: "린넨 셔츠 [오버사이즈 핏]_블랙_남성용", price: 31500, discountRate: "50%", originalPrice: 63000, url: URL(string: "https://example.com/product/2")!, imageUrl: URL(string: "https://example.com/image2.jpg")!, priceHistory: samplePriceHistory, category: "셔츠")
-]
-
-// Preview setup
+// 프리뷰 설정
 struct ProductDetailView_Previews: PreviewProvider {
     static var previews: some View {
         ProductDetailView(product: ProductResponseDto(
@@ -262,7 +233,7 @@ struct ProductDetailView_Previews: PreviewProvider {
             discountRate: "50%",
             originalPrice: 30000,
             url: URL(string: "https://example.com/product/1")!,
-            imageUrl: URL(string: "https://example.com/image.jpg")!,
+            imageUrl: URL(string: "https://example.com/sample-product-image.jpg")!,
             priceHistory: samplePriceHistory,
             category: "테스트 카테고리"
         ), favoriteService: MockFavoriteService())
