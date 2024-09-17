@@ -8,13 +8,31 @@
 import Foundation
 
 // MARK: - Error Handling
-enum APIError: Error {
+
+enum APIError: Error, Equatable {
     case invalidURL
     case noData
     case decodingError
     case networkError(Error)
     case serverError(Int)
+    
+    static func == (lhs: APIError, rhs: APIError) -> Bool {
+        switch (lhs, rhs) {
+        case (.invalidURL, .invalidURL),
+             (.noData, .noData),
+             (.decodingError, .decodingError):
+            return true
+        case (.serverError(let lhsCode), .serverError(let rhsCode)):
+            return lhsCode == rhsCode
+        case (.networkError(_), .networkError(_)):
+            return true
+        default:
+            return false
+        }
+    }
 }
+
+
 
 // MARK: - API Endpoints
 private enum APIEndpoints {
