@@ -64,6 +64,7 @@ struct SearchResultsView: View {
                 fetchSearchResults()
             }
         }
+        .navigationBarHidden(true)
     }
     
     private var productGrid: some View {

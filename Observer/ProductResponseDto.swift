@@ -19,6 +19,10 @@ struct ProductResponseDto: Identifiable, Codable {
     let imageUrl: URL
     let priceHistory: [PriceHistory]
     let category: String
+    
+    static func ==(lhs: ProductResponseDto, rhs: ProductResponseDto) -> Bool {
+        return lhs.id == rhs.id
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
