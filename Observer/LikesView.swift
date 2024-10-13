@@ -209,16 +209,3 @@ struct LikesView: View {
         }
     }
 }
-
-struct LikesView_Previews: PreviewProvider {
-    static var previews: some View {
-        let mockAPIClient = MockAPIClient()
-
-        let mockAuthViewModel = AuthViewModel(authClient: MockAuthAPIClient(), sessionService: MockSessionService())
-        mockAuthViewModel.isLoggedIn = true
-
-        return LikesView(apiClient: mockAPIClient)
-            .environmentObject(mockAuthViewModel)
-            .previewDisplayName("Likes View Preview")
-    }
-}

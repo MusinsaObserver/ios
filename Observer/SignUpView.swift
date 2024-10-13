@@ -319,15 +319,3 @@ struct TermsPopupView: View {
         .frame(maxWidth: .infinity)
     }
 }
-
-struct SignUpView_Previews: PreviewProvider {
-    static var previews: some View {
-        let mockAuthViewModel = AuthViewModel(
-            authClient: MockAuthAPIClient(),
-            sessionService: MockSessionService()
-        )
-        
-        return SignUpView()
-            .environmentObject(mockAuthViewModel)
-    }
-}

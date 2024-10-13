@@ -162,12 +162,12 @@
 				F17F2AEB2C9010F300C6804F /* ProductResponseDto.swift */,
 				F17F2AF12C90113300C6804F /* SearchBarView.swift */,
 				F17F2AFD2C90166C00C6804F /* SearchResultsView.swift */,
+				F1AEE4D22CB40DA60073FD9B /* Session.swift */,
 				F1B7356D2C96EC7F007A9844 /* SessionManager.swift */,
 				F1B7356B2C96C265007A9844 /* SessionService.swift */,
 				F17F2AFF2C9016DD00C6804F /* SignUpView.swift */,
 				F17F2ABB2C900FC500C6804F /* Assets.xcassets */,
 				F17F2ABD2C900FC500C6804F /* Preview Content */,
-				F1AEE4D22CB40DA60073FD9B /* Session.swift */,
 			);
 			path = Observer;
 			sourceTree = "<group>";

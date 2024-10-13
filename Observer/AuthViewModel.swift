@@ -235,28 +235,3 @@ struct RefreshSessionResponse: Codable {
 struct LogoutResponse: Codable {
     let message: String
 }
-
-// MARK: - Mock Implementations for Preview
-#if DEBUG
-class MockAuthAPIClient: AuthAPIClientProtocol {
-    func login(username: String, password: String) async throws -> LoginResponse {
-        return LoginResponse(session: "mock_session", user: User(id: "1", username: username))
-    }
-    
-    func validateSession(session: String) async throws -> Bool {
-        return true
-    }
-    
-    func refreshSession(session: String) async throws -> String {
-        return "new_mock_session"
-    }
-    
-    func appleSignIn(idToken: String) async throws -> SessionResponse {
-        return SessionResponse(session: "mock_session", user: User(id: "1", username: "MockUser"), isNewUser: true, errorMessage: nil)
-    }
-
-    func logout() async throws -> LogoutResponse {
-        return LogoutResponse(message: "Successfully logged out")
-    }
-}
-#endif

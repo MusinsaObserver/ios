@@ -163,10 +163,3 @@ struct LoginView: View {
         }.resume()
     }
 }
-
-struct LoginView_Previews: PreviewProvider {
-    static var previews: some View {
-        LoginView()
-            .environmentObject(AuthViewModel(authClient: MockAuthAPIClient(), sessionService: MockSessionService()))
-    }
-}

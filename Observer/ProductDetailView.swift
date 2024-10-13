@@ -217,21 +217,3 @@ struct ProductDetailView: View {
             .safeAreaInsets.top ?? 0
     }
 }
-
-// 프리뷰 설정
-struct ProductDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        ProductDetailView(product: ProductResponseDto(
-            id: 1,
-            brand: "테스트 브랜드",
-            name: "테스트 상품",
-            price: 15000,
-            discountRate: "50%",
-            originalPrice: 30000,
-            url: URL(string: "https://example.com/product/1")!,
-            imageUrl: URL(string: "https://example.com/sample-product-image.jpg")!,
-            priceHistory: samplePriceHistory,
-            category: "테스트 카테고리"
-        ), favoriteService: MockFavoriteService())
-    }
-}

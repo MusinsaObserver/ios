@@ -161,16 +161,3 @@ struct AgreementView: View {
         return "개인정보 제3자 제공 동의 내용이 여기에 표시됩니다."
     }
 }
-
-// 프리뷰
-struct AgreementView_Previews: PreviewProvider {
-    static var previews: some View {
-        let mockAuthViewModel = AuthViewModel(
-            authClient: MockAuthAPIClient(),
-            sessionService: MockSessionService()
-        )
-        
-        return AgreementView()
-            .environmentObject(mockAuthViewModel)
-    }
-}

@@ -33,15 +33,3 @@ struct SearchBarView: View {
         .padding(.horizontal, Constants.Spacing.medium)
     }
 }
-
-struct SearchBarView_Previews: PreviewProvider {
-    static var previews: some View {
-        ZStack {
-            Constants.Colors.backgroundDarkGrey
-            SearchBarView(searchQuery: .constant("")) {
-                print("Search button clicked")
-            }
-        }
-        .previewLayout(.sizeThatFits)
-    }
-}

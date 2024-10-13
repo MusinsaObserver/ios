@@ -178,17 +178,3 @@ extension DateFormatter {
         return formatter
     }()
 }
-
-struct PriceHistoryChartView_Previews: PreviewProvider {
-    static var previews: some View {
-        PriceHistoryChartView(priceHistory: samplePriceHistory, favoriteDate: DateFormatter.shortDateFormatter.date(from: "08/01"))
-    }
-}
-
-let samplePriceHistory: [PriceHistory] = [
-    PriceHistory(id: 1, date: DateFormatter.shortDateFormatter.date(from: "05/19")!, price: 12800),
-    PriceHistory(id: 2, date: DateFormatter.shortDateFormatter.date(from: "05/28")!, price: 21900),
-    PriceHistory(id: 3, date: DateFormatter.shortDateFormatter.date(from: "08/01")!, price: 21900),
-    PriceHistory(id: 4, date: DateFormatter.shortDateFormatter.date(from: "08/02")!, price: 14700),
-    PriceHistory(id: 5, date: DateFormatter.shortDateFormatter.date(from: "08/19")!, price: 14700)
-]
