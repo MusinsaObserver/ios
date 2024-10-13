@@ -8,114 +8,104 @@
 import SwiftUI
 
 struct ProductCardView: View {
-    let product: ProductResponseDto
-    @State private var isLiked = false
+    var product: ProductResponseDto
+    @State private var isFavorite = false
     @State private var showLoginAlert = false
-    @State private var isShowingLoginView = false
     @EnvironmentObject private var authViewModel: AuthViewModel
     let favoriteService: FavoriteServiceProtocol
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: Constants.Spacing.small) {
-            productImage
-            productInfo
+        NavigationLink(destination: ProductDetailView(product: product)) {
+            VStack(alignment: .leading) {
+                AsyncImage(url: product.imageUrl) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .frame(height: 180)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 180)
+                            .cornerRadius(8)
+                            .transition(.opacity)
+                    case .failure:
+                        Image(systemName: "xmark.circle")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 180)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                
+                Text(product.name)
+                    .font(.custom("Pretendard", size: 14))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                HStack {
+                    Text("\(product.discountRate) \(formatPrice(product.price))")
+                        .font(.custom("Pretendard", size: 14).weight(.bold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    favoriteButton
+                }
+            }
+            .padding()
+            .background(Color.white.opacity(0.1))
+            .cornerRadius(8)
+            .contentShape(Rectangle()) // Ensures full tap area usage
         }
-        .padding()
-        .background(Constants.Colors.cardBackground)
-        .cornerRadius(Constants.CornerRadius.medium)
-        .alert(isPresented: $showLoginAlert) {
-            Alert(
-                title: Text("로그인 필요"),
-                message: Text("로그인 후 사용 가능한 기능입니다."),
-                primaryButton: .default(Text("로그인"), action: {
-                    isShowingLoginView = true
-                }),
-                secondaryButton: .cancel()
-            )
-        }
-        .sheet(isPresented: $isShowingLoginView) {
-            LoginView() // Login screen is shown in a modal view
-        }
+        .buttonStyle(PlainButtonStyle())
         .onAppear {
-            // Check if the product is already liked when the view appears
+            // Fetch the initial favorite status when the view appears
             Task {
                 do {
-                    isLiked = try await favoriteService.checkFavoriteStatus(for: product.id)
+                    isFavorite = try await favoriteService.checkFavoriteStatus(for: product.id)
                 } catch {
                     print("Error checking favorite status: \(error.localizedDescription)")
                 }
             }
         }
     }
-    
-    private var productImage: some View {
-        AsyncImage(url: product.imageUrl) { phase in
-            switch phase {
-            case .empty:
-                ProgressView()
-                    .frame(height: Constants.ImageSize.height)
-            case .success(let image):
-                image
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: Constants.ImageSize.height)
-                    .cornerRadius(Constants.CornerRadius.small)
-                    .transition(.opacity)
-            case .failure:
-                Image(systemName: "xmark.circle")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: Constants.ImageSize.height)
-            @unknown default:
-                EmptyView()
-            }
-        }
-        .accessibilityLabel("Product Image")
-    }
-    
-    private var productInfo: some View {
-        VStack(alignment: .leading, spacing: Constants.Spacing.xSmall) {
-            Text(product.name)
-                .font(.custom(Constants.Fonts.pretendard, size: Constants.FontSize.small))
-                .foregroundColor(.white)
-                .lineLimit(1)
-            
-            HStack {
-                Text("\(product.discountRate) \(formattedPrice)")
-                    .font(.custom(Constants.Fonts.pretendard, size: Constants.FontSize.small).weight(.bold))
-                    .foregroundColor(.white)
-                Spacer()
-                favoriteButton
-            }
-        }
-    }
-    
+
     private var favoriteButton: some View {
         Button(action: {
             if authViewModel.isLoggedIn {
-                // Toggle the like status and update the backend
+                // Toggle favorite status with the backend
                 Task {
                     do {
                         let newStatus = try await favoriteService.toggleFavorite(for: product.id)
-                        isLiked = newStatus
+                        isFavorite = newStatus
                     } catch {
                         print("Error toggling favorite: \(error.localizedDescription)")
                     }
                 }
             } else {
-                showLoginAlert = true // Show login alert if not logged in
+                showLoginAlert = true
             }
         }) {
-            Image(systemName: isLiked ? "heart.fill" : "heart")
-                .foregroundColor(isLiked ? .red : .white)
+            Image(systemName: isFavorite ? "heart.fill" : "heart")
+                .foregroundColor(isFavorite ? .red : .white)
         }
-        .accessibilityLabel(isLiked ? "Remove from favorites" : "Add to favorites")
+        .alert(isPresented: $showLoginAlert) {
+            Alert(
+                title: Text("로그인 필요"),
+                message: Text("로그인 후 사용 가능한 기능입니다."),
+                primaryButton: .default(Text("로그인"), action: {
+                    // Logic to show login view if needed
+                }),
+                secondaryButton: .cancel()
+            )
+        }
+        .accessibilityLabel(isFavorite ? "Remove from favorites" : "Add to favorites")
     }
-    
-    private var formattedPrice: String {
+
+    private func formatPrice(_ price: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "ko_KR")
-        return formatter.string(from: NSNumber(value: product.price)) ?? "\(product.price)"
+        return formatter.string(from: NSNumber(value: price)) ?? "\(price)"
     }
 }

@@ -33,16 +33,15 @@ struct NavigationBarView: View {
                 .frame(height: 44 + geometry.safeAreaInsets.top)
                 .background(Constants.Colors.backgroundDarkGrey)
             }
-            // Ensure the ZStack takes the correct height
             .frame(height: 44 + geometry.safeAreaInsets.top, alignment: .top)
         }
-        .frame(height: 44) // Set a fixed height to avoid expanding
+        .frame(height: 44)
     }
 
     private var leftButton: some View {
         Button(action: {
             if !isHomeView {
-                presentationMode.wrappedValue.dismiss() // Go back to previous view
+                presentationMode.wrappedValue.dismiss()
             }
         }) {
             Image(systemName: "chevron.left")
@@ -56,9 +55,9 @@ struct NavigationBarView: View {
     private var rightButton: some View {
         Button(action: {
             if authViewModel.isLoggedIn {
-                isShowingLikesView = true // Trigger navigation to LikesView
+                isShowingLikesView = true
             } else {
-                isShowingLoginView = true // Trigger navigation to LoginView
+                isShowingLoginView = true
             }
         }) {
             Image(systemName: "person")

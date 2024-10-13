@@ -2,7 +2,7 @@
 //  AuthViewModel.swift
 //  Observer
 //
-//  Created by Jiwon Kim on 9/12/24.
+//  Created by Jiwon Kim on 9/10/24.
 //
 
 import Foundation
@@ -13,7 +13,8 @@ private enum AuthAPIEndpoints {
     static let login = "/api/auth/login"
     static let validateSession = "/api/auth/validate"
     static let refreshSession = "/api/auth/refresh"
-    static let appleSignIn = "/api/auth/apple/login" // Added for Apple Sign-In
+    static let appleSignIn = "/api/auth/apple/login"
+    static let logout = "/api/auth/logout"
 }
 
 // MARK: - Auth API Client Protocol
@@ -22,6 +23,7 @@ protocol AuthAPIClientProtocol {
     func validateSession(session: String) async throws -> Bool
     func refreshSession(session: String) async throws -> String
     func appleSignIn(idToken: String) async throws -> SessionResponse
+    func logout() async throws -> LogoutResponse
 }
 
 // MARK: - Auth API Client Implementation
@@ -79,6 +81,24 @@ class AuthAPIClient: AuthAPIClientProtocol {
         )
         return response.newSession
     }
+
+    func logout() async throws -> LogoutResponse {
+        let endpoint = AuthAPIEndpoints.logout
+        let url = URL(string: "\(baseUrl)\(endpoint)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              200...299 ~= httpResponse.statusCode else {
+            throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? 0)
+        }
+
+        let logoutResponse = try JSONDecoder().decode(LogoutResponse.self, from: data)
+        return logoutResponse
+    }
 }
 
 // MARK: - Auth View Model
@@ -88,18 +108,24 @@ class AuthViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     let authClient: AuthAPIClientProtocol
-    private let sessionService: SessionServiceProtocol
+    let sessionService: SessionServiceProtocol
     
     init(authClient: AuthAPIClientProtocol, sessionService: SessionServiceProtocol) {
         self.authClient = authClient
         self.sessionService = sessionService
         checkLoginStatus()
     }
+
+    func getSessionId() -> String? {
+        return sessionService.getSession()
+    }
     
     func checkLoginStatus() {
         Task {
             if let session = sessionService.getSession(), !session.isEmpty {
-                await validateSession(session)
+                await MainActor.run {
+                    self.isLoggedIn = true
+                }
             } else {
                 await MainActor.run {
                     self.isLoggedIn = false
@@ -119,20 +145,43 @@ class AuthViewModel: ObservableObject {
         }
     }
     
+    func appleSignIn(idToken: String) {
+        Task {
+            do {
+                let response = try await authClient.appleSignIn(idToken: idToken)
+                if let sessionToken = response.session, let user = response.user {
+                    await handleSuccessfulLogin(session: sessionToken, user: user)
+                } else {
+                    await handleError(APIError.invalidResponse)
+                }
+            } catch {
+                await handleError(error)
+            }
+        }
+    }
+    
     func logout() {
-        sessionService.clearSession()
-        isLoggedIn = false
-        user = nil
+        Task {
+            do {
+                let response = try await authClient.logout()
+
+                if response.message == "Successfully logged out" {
+                    await MainActor.run {
+                        sessionService.clearSession()
+                        isLoggedIn = false
+                        user = nil
+                    }
+                } else {
+                    await MainActor.run {
+                        errorMessage = "로그아웃 실패: 예상치 못한 응답입니다."
+                    }
+                }
+            } catch {
+                await handleError(error)
+            }
+        }
     }
-    
-    func getSessionId() -> String? {
-        return sessionService.getSession()
-    }
-    
-    func saveSession(_ session: String) {
-        sessionService.saveSession(session)
-    }
-    
+
     func refreshSession() {
         Task {
             guard let session = sessionService.getSession() else {
@@ -143,39 +192,28 @@ class AuthViewModel: ObservableObject {
             do {
                 let newSession = try await authClient.refreshSession(session: session)
                 sessionService.saveSession(newSession)
+                await MainActor.run {
+                    self.isLoggedIn = true
+                }
             } catch {
                 await handleError(error)
             }
         }
     }
     
-    private func validateSession(_ session: String) async {
-        do {
-            let isValid = try await authClient.validateSession(session: session)
-            await MainActor.run {
-                self.isLoggedIn = isValid
-                if !isValid {
-                    self.logout()
-                }
-            }
-        } catch {
-            await handleError(error)
-        }
-    }
-    
     @MainActor
-    private func handleSuccessfulLogin(session: String, user: User?) {
+    private func handleSuccessfulLogin(session: String, user: User) {
         sessionService.saveSession(session)
         self.user = user
-        isLoggedIn = true
-        errorMessage = nil
+        self.isLoggedIn = true
+        self.errorMessage = nil
     }
     
     @MainActor
     private func handleError(_ error: Error) {
-        errorMessage = error.localizedDescription
-        isLoggedIn = false
-        user = nil
+        self.errorMessage = error.localizedDescription
+        self.isLoggedIn = false
+        self.user = nil
     }
 }
 
@@ -183,7 +221,6 @@ class AuthViewModel: ObservableObject {
 struct User: Codable {
     let id: String
     let username: String
-    let email: String
 }
 
 struct LoginResponse: Codable {
@@ -195,11 +232,15 @@ struct RefreshSessionResponse: Codable {
     let newSession: String
 }
 
+struct LogoutResponse: Codable {
+    let message: String
+}
+
 // MARK: - Mock Implementations for Preview
 #if DEBUG
 class MockAuthAPIClient: AuthAPIClientProtocol {
     func login(username: String, password: String) async throws -> LoginResponse {
-        return LoginResponse(session: "mock_session", user: User(id: "1", username: username, email: "\(username)@example.com"))
+        return LoginResponse(session: "mock_session", user: User(id: "1", username: username))
     }
     
     func validateSession(session: String) async throws -> Bool {
@@ -211,8 +252,11 @@ class MockAuthAPIClient: AuthAPIClientProtocol {
     }
     
     func appleSignIn(idToken: String) async throws -> SessionResponse {
-        // Mock implementation with isNewUser added
-        return SessionResponse(session: "mock_session", user: User(id: "1", username: "MockUser", email: "mock@example.com"), isNewUser: true, errorMessage: nil)
+        return SessionResponse(session: "mock_session", user: User(id: "1", username: "MockUser"), isNewUser: true, errorMessage: nil)
+    }
+
+    func logout() async throws -> LogoutResponse {
+        return LogoutResponse(message: "Successfully logged out")
     }
 }
 #endif

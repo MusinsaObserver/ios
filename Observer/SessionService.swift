@@ -20,7 +20,7 @@ protocol SessionServiceProtocol {
 struct SessionResponse: Codable {
     let session: String?
     let user: User?
-    let isNewUser: Bool? // 신규 사용자 여부를 나타내는 필드
+    let isNewUser: Bool?
     let errorMessage: String?
 }
 

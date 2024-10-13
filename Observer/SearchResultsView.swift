@@ -17,10 +17,10 @@ struct SearchResultsView: View {
     @State private var isShowingLoginView = false
     @EnvironmentObject private var authViewModel: AuthViewModel
 
-    let apiClient = APIClient(baseUrl: "https://your-api-base-url.com")
+    let apiClient = APIClient(baseUrl: "https://cea9-141-223-234-170.ngrok-free.app")
     let favoriteService: FavoriteServiceProtocol
 
-    init(searchQuery: String, products: [ProductResponseDto] = [], favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://your-api-base-url.com")!)) {
+    init(searchQuery: String, products: [ProductResponseDto] = [], favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://cea9-141-223-234-170.ngrok-free.app")!)) {
         self.searchQuery = searchQuery
         _products = State(initialValue: products)
         self.favoriteService = favoriteService

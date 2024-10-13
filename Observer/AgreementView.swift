@@ -18,7 +18,7 @@ struct AgreementView: View {
     @State private var showThirdPartyPopup = false
     
     @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var isHomeView = false  // 홈 화면으로 이동
+    @State private var isHomeView = false
     
     var body: some View {
         NavigationStack {
@@ -27,7 +27,6 @@ struct AgreementView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: Constants.Spacing.medium) {
-                    
                     Spacer().frame(height: 150)
                     
                     // 약관 동의 설명 텍스트
@@ -146,12 +145,10 @@ struct AgreementView: View {
     }
     
     private func completeSignUp() {
-        // 약관 동의 후 회원가입 완료 로직
         authViewModel.isLoggedIn = true
-        isHomeView = true // 약관 동의 후 HomeView로 이동
+        isHomeView = true
     }
 
-    // 약관 내용들 (간단히 작성)
     func termsOfServiceContent() -> String {
         return "서비스 이용 약관 내용이 여기에 표시됩니다."
     }

@@ -15,7 +15,7 @@ struct PriceHistoryChartView: View {
     
     var body: some View {
         let adjustedPriceHistory = addFavoriteDateIfNeeded(priceHistory: priceHistory, favoriteDate: favoriteDate)
-        let currentPrice = adjustedPriceHistory.last?.price ?? 0 // 현재 가격을 마지막 가격으로 설정
+        let currentPrice = adjustedPriceHistory.last?.price ?? 0
         
         GeometryReader { geometry in
             let width = geometry.size.width
@@ -25,7 +25,7 @@ struct PriceHistoryChartView: View {
             
             let priceRange = maxPrice - minPrice
             let yScale = (height - 60) / CGFloat(priceRange)
-            let xScale = (width - 100) / CGFloat(90) * scale // 3달(90일) 기준으로 x축 스케일 설정
+            let xScale = (width - 100) / CGFloat(90) * scale
             
             ZStack {
                 // Background

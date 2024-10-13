@@ -11,14 +11,14 @@ import SwiftUI
 struct ObserverApp: App {
     
     let authViewModel = AuthViewModel(
-            authClient: AuthAPIClient(baseUrl: "https://your-api-url.com"),
+            authClient: AuthAPIClient(baseUrl: "https://cea9-141-223-234-170.ngrok-free.app"),
             sessionService: SessionService()
         )
     
     var body: some Scene {
         WindowGroup {
             HomeView()
-                .environmentObject(authViewModel)  // Inject AuthViewModel into the environment
+                .environmentObject(authViewModel)
         }
     }
 }

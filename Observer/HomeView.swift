@@ -13,7 +13,7 @@ struct HomeView: View {
     @State private var isHomeView = true
     @State private var isShowingLikesView = false
     @State private var isShowingLoginView = false
-
+    
     @EnvironmentObject var authViewModel: AuthViewModel
 
     var body: some View {
@@ -34,7 +34,11 @@ struct HomeView: View {
                     SearchResultsView(searchQuery: searchQuery)
                 }
                 .navigationDestination(isPresented: $isShowingLikesView) {
-                    LikesView(apiClient: APIClient(baseUrl: "https://your-api-url.com"), userId: authViewModel.user?.id ?? "")
+                    if authViewModel.isLoggedIn {
+                        LikesView(apiClient: APIClient(baseUrl: "https://cea9-141-223-234-170.ngrok-free.app"))
+                    } else {
+                        LoginView()
+                    }
                 }
                 .navigationDestination(isPresented: $isShowingLoginView) {
                     LoginView()
@@ -44,6 +48,18 @@ struct HomeView: View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            handleOnAppear()
+        }
+        .onChange(of: isShowingLikesView) { newValue in
+            if newValue {
+                authViewModel.checkLoginStatus()
+                if !authViewModel.isLoggedIn {
+                    isShowingLoginView = true
+                    isShowingLikesView = false
+                }
+            }
+        }
     }
     
     private var navigationBarHeight: CGFloat {
@@ -62,7 +78,7 @@ struct HomeView: View {
     private var searchBar: some View {
         SearchBarView(searchQuery: $searchQuery) {
             isShowingSearchResults = true
-            performApiRequest()
+            performSearchApiRequest()
         }
         .padding(.horizontal, Constants.Spacing.medium)
         .padding(.top, Constants.Spacing.large)
@@ -107,13 +123,47 @@ struct HomeView: View {
             .padding(.bottom, Constants.Spacing.medium)
     }
     
-    private func performApiRequest() {
+    private func handleOnAppear() {
+        print("HomeView appeared")
+        authViewModel.checkLoginStatus()
+    }
+    
+    private func performSearchApiRequest() {
+        guard let url = URL(string: "https://cea9-141-223-234-170.ngrok-free.app/api/product/search?query=\(searchQuery)&page=0&size=100") else {
+            print("Invalid URL")
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("검색 결과를 불러오는데 실패했습니다: \(error.localizedDescription)")
+                return
+            }
+
+            if let httpResponse = response as? HTTPURLResponse {
+                print("서버 응답 상태 코드: \(httpResponse.statusCode)")
+                if httpResponse.statusCode == 200 {
+                    if let data = data, let jsonString = String(data: data, encoding: .utf8) {
+                        print("응답 JSON: \(jsonString)")
+                    }
+                } else {
+                    print("잘못된 응답이 수신되었습니다.")
+                }
+            }
+        }.resume()
+    }
+    
+    private func performSessionApiRequest() {
         guard let sessionId = authViewModel.getSessionId() else {
             print("No session ID found")
             return
         }
         
-        guard let url = URL(string: "https://your-api-url.com") else {
+        guard let url = URL(string: "https://cea9-141-223-234-170.ngrok-free.app") else {
             print("Invalid URL")
             return
         }
@@ -122,6 +172,11 @@ struct HomeView: View {
         request.setValue("Session \(sessionId)", forHTTPHeaderField: "Authorization")
         
         URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("API request failed: \(error.localizedDescription)")
+                return
+            }
+            print("API request successful")
         }.resume()
     }
 }

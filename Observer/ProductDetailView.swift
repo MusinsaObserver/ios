@@ -15,19 +15,17 @@ struct ProductDetailView: View {
 
     let favoriteService: FavoriteServiceProtocol
 
-    init(product: ProductResponseDto, favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://your-api-base-url.com")!)) {
+    init(product: ProductResponseDto, favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://cea9-141-223-234-170.ngrok-free.app")!)) {
         self.product = product
         self.favoriteService = favoriteService
     }
 
     private var isLoggedIn: Bool {
-        // 세션 확인 로직
         return SessionManager().getSession() != nil
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // 네비게이션 바 추가
             NavigationBarView(
                 title: "MUSINSA ⦁ OBSERVER",
                 isHomeView: .constant(false),
@@ -57,6 +55,7 @@ struct ProductDetailView: View {
                 }
             }
         }
+        .navigationBarHidden(true)
     }
 
     // MARK: - Subviews
@@ -122,9 +121,8 @@ struct ProductDetailView: View {
 
     private var actionButtonsSection: some View {
         HStack {
-            // 무신사 구매 링크 버튼
             Button(action: {
-                UIApplication.shared.open(product.url)
+                UIApplication.shared.open(product.url) // Correctly referencing the URL
             }) {
                 Text("무신사 구매 링크")
                     .font(.custom("Pretendard", size: 14))
@@ -189,7 +187,6 @@ struct ProductDetailView: View {
     }
 
     // MARK: - Helper Functions
-
     private func handleLikeAction() {
         if isLoggedIn {
             Task {
@@ -211,7 +208,6 @@ struct ProductDetailView: View {
         return formatter.string(from: NSNumber(value: price)) ?? "\(price)원"
     }
 
-    // iOS 15에서 윈도우 접근 방법 수정
     private func safeAreaTop() -> CGFloat {
         return UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }

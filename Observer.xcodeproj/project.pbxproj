@@ -27,6 +27,7 @@
 		F17F2B002C9016DD00C6804F /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17F2AFF2C9016DD00C6804F /* SignUpView.swift */; };
 		F17F2B0B2C91483F00C6804F /* FavoriteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17F2B0A2C91483F00C6804F /* FavoriteService.swift */; };
 		F17F2B0D2C91486C00C6804F /* FavoriteManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17F2B0C2C91486C00C6804F /* FavoriteManager.swift */; };
+		F1AEE4D32CB40DA60073FD9B /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1AEE4D22CB40DA60073FD9B /* Session.swift */; };
 		F1B735662C96BC10007A9844 /* ObserverApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1B735652C96BC10007A9844 /* ObserverApp.swift */; };
 		F1B7356A2C96C092007A9844 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1B735692C96C092007A9844 /* AppleSignInService.swift */; };
 		F1B7356C2C96C265007A9844 /* SessionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1B7356B2C96C265007A9844 /* SessionService.swift */; };
@@ -80,6 +81,8 @@
 		F17F2AFF2C9016DD00C6804F /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		F17F2B0A2C91483F00C6804F /* FavoriteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteService.swift; sourceTree = "<group>"; };
 		F17F2B0C2C91486C00C6804F /* FavoriteManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteManager.swift; sourceTree = "<group>"; };
+		F1AEE4D12CACDAF80073FD9B /* Observer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Observer.entitlements; sourceTree = "<group>"; };
+		F1AEE4D22CB40DA60073FD9B /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
 		F1B735652C96BC10007A9844 /* ObserverApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObserverApp.swift; sourceTree = "<group>"; };
 		F1B735692C96C092007A9844 /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
 		F1B7356B2C96C265007A9844 /* SessionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionService.swift; sourceTree = "<group>"; };
@@ -139,6 +142,7 @@
 		F17F2AB62C900FC400C6804F /* Observer */ = {
 			isa = PBXGroup;
 			children = (
+				F1AEE4D12CACDAF80073FD9B /* Observer.entitlements */,
 				F1B7356F2C983AAE007A9844 /* AgreementView.swift */,
 				F17F2AF72C9011F800C6804F /* APIClient.swift */,
 				F1B735692C96C092007A9844 /* AppleSignInService.swift */,
@@ -163,6 +167,7 @@
 				F17F2AFF2C9016DD00C6804F /* SignUpView.swift */,
 				F17F2ABB2C900FC500C6804F /* Assets.xcassets */,
 				F17F2ABD2C900FC500C6804F /* Preview Content */,
+				F1AEE4D22CB40DA60073FD9B /* Session.swift */,
 			);
 			path = Observer;
 			sourceTree = "<group>";
@@ -349,6 +354,7 @@
 				F17F2AE82C9010BB00C6804F /* HomeView.swift in Sources */,
 				F1B7356C2C96C265007A9844 /* SessionService.swift in Sources */,
 				F17F2AFC2C9015D000C6804F /* LikesView.swift in Sources */,
+				F1AEE4D32CB40DA60073FD9B /* Session.swift in Sources */,
 				F1B7356A2C96C092007A9844 /* AppleSignInService.swift in Sources */,
 				F17F2AE42C90108800C6804F /* NavigationBarView.swift in Sources */,
 				F1B7356E2C96EC7F007A9844 /* SessionManager.swift in Sources */,
@@ -512,6 +518,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Observer/Observer.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Observer/Preview Content\"";
@@ -528,7 +535,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Musinsa.Observer;
+				PRODUCT_BUNDLE_IDENTIFIER = store.musinsaobserver.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -541,6 +548,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Observer/Observer.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Observer/Preview Content\"";
@@ -557,7 +565,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Musinsa.Observer;
+				PRODUCT_BUNDLE_IDENTIFIER = store.musinsaobserver.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

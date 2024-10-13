@@ -14,12 +14,14 @@ enum APIError: Error, Equatable {
     case decodingError
     case networkError(Error)
     case serverError(Int)
+    case invalidResponse
 
     static func == (lhs: APIError, rhs: APIError) -> Bool {
         switch (lhs, rhs) {
         case (.invalidURL, .invalidURL),
              (.noData, .noData),
-             (.decodingError, .decodingError):
+             (.decodingError, .decodingError),
+             (.invalidResponse, .invalidResponse):
             return true
         case (.serverError(let lhsCode), .serverError(let rhsCode)):
             return lhsCode == rhsCode
@@ -37,7 +39,7 @@ private enum APIEndpoints {
     static let productDetails = "/api/product/search/"
     static let likedProducts = "/api/likes/"
     static let likeProduct = "/api/likes/%@/product/%d"
-    static let deleteAccount = "/api/users/"
+    static let deleteAccount = "/api/auth/delete"
     static let appleSignIn = "/api/auth/apple/login"
     static let logout = "/api/auth/logout"
 }
@@ -51,10 +53,10 @@ private enum HTTPMethod: String {
 protocol APIClientProtocol {
     func searchProducts(query: String) async throws -> [ProductResponseDto]
     func getProductDetails(productId: Int) async throws -> ProductResponseDto
-    func getLikedProducts(userId: String, offset: Int, limit: Int) async throws -> [ProductResponseDto]
-    func toggleProductLike(userId: String, productId: Int, like: Bool) async throws -> String
+    func getLikedProducts(offset: Int, limit: Int) async throws -> [ProductResponseDto]
+    func toggleProductLike(productId: Int, like: Bool) async throws -> String
     func logout() async throws
-    func deleteAccount(userId: String) async throws -> Bool
+    func deleteAccount() async throws -> Bool
     func appleSignIn(idToken: String) async throws -> String
     func sendRequest<T: Codable>(endpoint: String, method: String, body: [String: Any]?) async throws -> T
 }
@@ -70,15 +72,6 @@ class APIClient: APIClientProtocol {
         self.urlSession = urlSession
     }
 
-    private var sessionId: String? {
-        get {
-            return UserDefaults.standard.string(forKey: "sessionId")
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "sessionId")
-        }
-    }
-
     func searchProducts(query: String) async throws -> [ProductResponseDto] {
         let endpoint = "\(APIEndpoints.search)?query=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
         return try await sendRequest(endpoint: endpoint, method: "GET", body: nil)
@@ -89,68 +82,170 @@ class APIClient: APIClientProtocol {
         return try await sendRequest(endpoint: endpoint, method: "GET", body: nil)
     }
 
-    func getLikedProducts(userId: String, offset: Int, limit: Int) async throws -> [ProductResponseDto] {
-        let endpoint = "\(APIEndpoints.likedProducts)\(userId)?offset=\(offset)&limit=\(limit)"
+    func getLikedProducts(offset: Int, limit: Int) async throws -> [ProductResponseDto] {
+        let endpoint = "\(APIEndpoints.likedProducts)?offset=\(offset)&limit=\(limit)"
         return try await sendRequest(endpoint: endpoint, method: "GET", body: nil)
     }
 
-    func toggleProductLike(userId: String, productId: Int, like: Bool) async throws -> String {
-        let endpoint = String(format: APIEndpoints.likeProduct, userId, productId)
-        return try await sendRequest(endpoint: endpoint, method: "POST", body: ["like": like])
+    func toggleProductLike(productId: Int, like: Bool) async throws -> String {
+        let endpoint = "\(APIEndpoints.likeProduct)/product/\(productId)"
+        if like {
+            return try await sendRequest(endpoint: endpoint, method: "POST", body: nil)
+        } else {
+            return try await sendRequest(endpoint: endpoint, method: "DELETE", body: nil)
+        }
     }
 
-    func deleteAccount(userId: String) async throws -> Bool {
-        let endpoint = "\(APIEndpoints.deleteAccount)\(userId)"
-        let _: EmptyResponse = try await sendRequest(endpoint: endpoint, method: "DELETE", body: nil)
-        return true
+    func deleteAccount() async throws -> Bool {
+        let endpoint = APIEndpoints.deleteAccount
+        var request = URLRequest(url: URL(string: baseUrl + endpoint)!)
+        request.httpMethod = "DELETE"
+        
+        // 인증 토큰을 헤더에 추가
+        if let token = UserDefaults.standard.string(forKey: "authToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (_, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        return httpResponse.statusCode == 200
     }
 
     func appleSignIn(idToken: String) async throws -> String {
         let endpoint = APIEndpoints.appleSignIn
-        return try await sendRequest(endpoint: endpoint, method: "POST", body: ["idToken": idToken])
+        
+        // Define a local struct to decode the response
+        struct AppleSignInResponse: Codable {
+            let sessionId: String?
+            let session: String?
+            let userId: String?
+        }
+        
+        let response: AppleSignInResponse = try await sendRequest(endpoint: endpoint, method: "POST", body: ["idToken": idToken])
+        
+        // Check for different possible keys in the response
+        if let sessionId = response.sessionId {
+            return sessionId
+        } else if let session = response.session {
+            return session
+        } else if let userId = response.userId {
+            return userId
+        } else {
+            print("Unexpected response structure: \(response)")
+            throw APIError.decodingError
+        }
     }
-
+    
     func logout() async throws {
         let endpoint = APIEndpoints.logout
-        _ = try await sendRequest(endpoint: endpoint, method: "POST", body: nil) as EmptyResponse
-        sessionId = nil
+        let response: LogoutResponse = try await sendRequest(endpoint: endpoint, method: "POST", body: nil)
+        print(response.message)
     }
 
     func sendRequest<T: Codable>(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> T {
         guard let url = URL(string: "\(baseUrl)\(endpoint)") else {
             throw APIError.invalidURL
         }
-
+        
         var request = URLRequest(url: url)
         request.httpMethod = method
+        
+        if let token = UserDefaults.standard.string(forKey: "authToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
 
         if let body = body {
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
 
-        if let sessionId = sessionId {
-            request.setValue("Session-ID \(sessionId)", forHTTPHeaderField: "Authorization")
+        do {
+            let (data, response) = try await urlSession.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.networkError(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"]))
+            }
+
+            // Log response details
+            print("Response status code: \(httpResponse.statusCode)")
+            print("Response headers: \(httpResponse.allHeaderFields)")
+
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Response body: \(responseString)")
+            }
+
+            guard 200...299 ~= httpResponse.statusCode else {
+                throw APIError.serverError(httpResponse.statusCode)
+            }
+
+            do {
+                let decoder = JSONDecoder()
+                return try decoder.decode(T.self, from: data)
+            } catch {
+                print("Decoding error: \(error)")
+                if let decodingError = error as? DecodingError {
+                    switch decodingError {
+                    case .dataCorrupted(let context):
+                        print("Data corrupted: \(context)")
+                    case .keyNotFound(let key, let context):
+                        print("Key '\(key)' not found: \(context.debugDescription)")
+                    case .typeMismatch(let type, let context):
+                        print("Type mismatch for type \(type): \(context.debugDescription)")
+                    case .valueNotFound(let type, let context):
+                        print("Value of type \(type) not found: \(context.debugDescription)")
+                    @unknown default:
+                        print("Unknown decoding error")
+                    }
+                }
+                throw APIError.decodingError
+            }
+        } catch {
+            print("Network error: \(error)")
+            throw APIError.networkError(error)
         }
-
-        let (data, response) = try await urlSession.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
-            throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? 0)
-        }
-
-        return try JSONDecoder().decode(T.self, from: data)
     }
 }
 
 // MARK: - Helper Structures
 struct EmptyResponse: Codable {}
 
+// MARK: - Mock API Client Implementation
 class MockAPIClient: APIClientProtocol {
+    private var likedProducts: [ProductResponseDto] = [
+        ProductResponseDto(
+            id: 1,
+            brand: "Brand A",
+            name: "Product A",
+            price: 10000,
+            discountRate: "10%",
+            originalPrice: 11000,
+            url: URL(string: "https://example.com")!,
+            imageUrl: URL(string: "https://example.com/imageA.jpg")!,
+            priceHistory: [],
+            category: "Category A"
+        ),
+        ProductResponseDto(
+            id: 2,
+            brand: "Brand B",
+            name: "Product B",
+            price: 20000,
+            discountRate: "20%",
+            originalPrice: 25000,
+            url: URL(string: "https://example.com")!,
+            imageUrl: URL(string: "https://example.com/imageB.jpg")!,
+            priceHistory: [],
+            category: "Category B"
+        )
+    ]
+
     func searchProducts(query: String) async throws -> [ProductResponseDto] {
-        return []  // Mock implementation
+        return []
     }
-    
+
     func getProductDetails(productId: Int) async throws -> ProductResponseDto {
         return ProductResponseDto(
             id: productId,
@@ -165,54 +260,36 @@ class MockAPIClient: APIClientProtocol {
             category: "Category"
         )
     }
-    
-    func getLikedProducts(userId: String, offset: Int, limit: Int) async throws -> [ProductResponseDto] {
-        return [
-            ProductResponseDto(
-                id: 1,
-                brand: "Brand A",
-                name: "Product A",
-                price: 10000,
-                discountRate: "10%",
-                originalPrice: 11000,
-                url: URL(string: "https://example.com")!,
-                imageUrl: URL(string: "https://example.com/imageA.jpg")!,
-                priceHistory: [],
-                category: "Category A"
-            ),
-            ProductResponseDto(
-                id: 2,
-                brand: "Brand B",
-                name: "Product B",
-                price: 20000,
-                discountRate: "20%",
-                originalPrice: 25000,
-                url: URL(string: "https://example.com")!,
-                imageUrl: URL(string: "https://example.com/imageB.jpg")!,
-                priceHistory: [],
-                category: "Category B"
-            )
-        ]
+
+    func getLikedProducts(offset: Int, limit: Int) async throws -> [ProductResponseDto] {
+        let startIndex = min(offset, likedProducts.count)
+        let endIndex = min(offset + limit, likedProducts.count)
+        return Array(likedProducts[startIndex..<endIndex])
     }
-    
-    func toggleProductLike(userId: String, productId: Int, like: Bool) async throws -> String {
-        return "Success"  // Mock implementation
+
+    func toggleProductLike(productId: Int, like: Bool) async throws -> String {
+        if let index = likedProducts.firstIndex(where: { $0.id == productId }) {
+            if like {
+                likedProducts.append(likedProducts[index])
+            } else {
+                likedProducts.remove(at: index)
+            }
+        }
+        return "Success"
     }
-    
-    func deleteAccount(userId: String) async throws -> Bool {
-        return true  // Simulate successful account deletion
+
+    func deleteAccount() async throws -> Bool {
+        return true
     }
-    
+
     func appleSignIn(idToken: String) async throws -> String {
-        return "mockUserId"  // Simulate successful sign-in
+        return "mockUserId"
     }
-    
+
     func logout() async throws {
-        // Simulate successful logout
     }
-    
+
     func sendRequest<T: Codable>(endpoint: String, method: String, body: [String: Any]? = nil) async throws -> T {
-        // Mocked sendRequest implementation
         throw APIError.invalidURL
     }
 }

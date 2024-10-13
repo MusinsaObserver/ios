@@ -19,10 +19,12 @@ struct SignUpView: View {
     @State private var showPrivacyPopup = false
     @State private var showThirdPartyPopup = false
     
-    @State private var isHomeView = false  // 홈 화면으로 이동
-    @State private var showAgreementsView = false  // 약관 동의 화면 표시 상태 추가
+    @State private var isHomeView = false
+    @State private var showAgreementsView = false
     
     @EnvironmentObject var authViewModel: AuthViewModel
+    
+    private let backendURL = "https://cea9-141-223-234-170.ngrok-free.app"
     
     var body: some View {
         NavigationStack {
@@ -167,59 +169,64 @@ struct SignUpView: View {
         )
     }
     
-    // Handle Apple Sign-In result
     private func handleAuthorization(result: Result<ASAuthorization, Error>) {
         if !allAgreementsAccepted {
-            // Show alert or handle the case where agreements are not accepted
             print("All agreements must be accepted before signing in.")
             return
         }
 
         switch result {
-        case .success(let authorization):
-            if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
-               let identityToken = appleIDCredential.identityToken,
-               let idTokenString = String(data: identityToken, encoding: .utf8) {
-                // Perform backend authentication with idTokenString
-                authenticateWithBackend(idToken: idTokenString)
-            } else {
-                // Handle error
-                print("No ID token received")
-            }
-        case .failure(let error):
-            print("Error signing in: \(error.localizedDescription)")
+            case .success(let authorization):
+                if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                   let identityTokenData = appleIDCredential.identityToken,
+                   let idTokenString = String(data: identityTokenData, encoding: .utf8) {
+                    // 여기서 idTokenString이 Apple로부터 받은 ID 토큰입니다.
+                    print("ID Token: \(idTokenString)")
+                    
+                    // 이제 ID 토큰을 백엔드로 전송하는 부분을 호출
+                    authenticateWithBackend(idToken: idTokenString)
+                    
+                } else {
+                    print("Failed to get identity token.")
+                }
+            case .failure(let error):
+                print("Apple Sign-In failed: \(error.localizedDescription)")
         }
     }
     
     private func authenticateWithBackend(idToken: String) {
-        Task {
-            do {
-                let sessionResponse = try await authViewModel.authClient.appleSignIn(idToken: idToken)
-                if let session = sessionResponse.session {
-                    await MainActor.run {
-                        authViewModel.saveSession(session)
-                        authViewModel.user = sessionResponse.user
-                        authViewModel.isLoggedIn = true
-                    }
-                    
-                    if sessionResponse.isNewUser ?? false {
-                        // 신규 사용자라면 약관 동의 화면으로 이동
-                        await MainActor.run {
-                            showAgreementsView = true
-                        }
-                    } else {
-                        // 기존 사용자라면 홈 화면으로 이동
-                        await MainActor.run {
-                            isHomeView = true
-                        }
-                    }
-                } else {
-                    print(sessionResponse.errorMessage ?? "Authentication failed")
-                }
-            } catch {
-                print("Authentication error: \(error.localizedDescription)")
-            }
+        guard let url = URL(string: "\(backendURL)/api/auth/apple/login") else {
+            print("Invalid backend URL")
+            return
         }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: String] = ["idToken": idToken]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Network error: \(error.localizedDescription)")
+                return
+            }
+
+            if let httpResponse = response as? HTTPURLResponse {
+                print("Response status code: \(httpResponse.statusCode)")
+            }
+
+            if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                print("Response from server: \(responseString)")
+                
+                // Assume backend returns success, we navigate to HomeView
+                DispatchQueue.main.async {
+                    self.isHomeView = true // Navigate to HomeView
+                }
+            } else {
+                print("No data received from server")
+            }
+        }.resume()
     }
     
     // 약관 내용들

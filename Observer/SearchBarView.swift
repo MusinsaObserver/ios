@@ -19,7 +19,7 @@ struct SearchBarView: View {
                 .cornerRadius(Constants.CornerRadius.large)
                 .foregroundColor(.white)
                 .accessibilityLabel("상품 검색")
-                .onSubmit { // Trigger when Enter is pressed
+                .onSubmit {
                     onSearchButtonClicked()
                 }
             
