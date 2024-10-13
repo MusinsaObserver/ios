@@ -55,11 +55,10 @@ struct ProductCardView: View {
             .padding()
             .background(Color.white.opacity(0.1))
             .cornerRadius(8)
-            .contentShape(Rectangle()) // Ensures full tap area usage
+            .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
         .onAppear {
-            // Fetch the initial favorite status when the view appears
             Task {
                 do {
                     isFavorite = try await favoriteService.checkFavoriteStatus(for: product.id)
@@ -73,7 +72,6 @@ struct ProductCardView: View {
     private var favoriteButton: some View {
         Button(action: {
             if authViewModel.isLoggedIn {
-                // Toggle favorite status with the backend
                 Task {
                     do {
                         let newStatus = try await favoriteService.toggleFavorite(for: product.id)
@@ -94,7 +92,6 @@ struct ProductCardView: View {
                 title: Text("로그인 필요"),
                 message: Text("로그인 후 사용 가능한 기능입니다."),
                 primaryButton: .default(Text("로그인"), action: {
-                    // Logic to show login view if needed
                 }),
                 secondaryButton: .cancel()
             )
@@ -102,10 +99,14 @@ struct ProductCardView: View {
         .accessibilityLabel(isFavorite ? "Remove from favorites" : "Add to favorites")
     }
 
-    private func formatPrice(_ price: Int) -> String {
+    private func formatPrice(_ price: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "ko_KR")
         return formatter.string(from: NSNumber(value: price)) ?? "\(price)"
+    }
+
+    private func formatPrice(_ price: Int) -> String {
+        formatPrice(Double(price))
     }
 }

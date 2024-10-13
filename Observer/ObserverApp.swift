@@ -11,7 +11,7 @@ import SwiftUI
 struct ObserverApp: App {
     
     let authViewModel = AuthViewModel(
-            authClient: AuthAPIClient(baseUrl: "https://cea9-141-223-234-170.ngrok-free.app"),
+            authClient: AuthAPIClient(baseUrl: "https://dc08-141-223-234-184.ngrok-free.app"),
             sessionService: SessionService()
         )
     

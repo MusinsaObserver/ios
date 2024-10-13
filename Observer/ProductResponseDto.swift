@@ -7,12 +7,11 @@
 
 import Foundation
 
-/// 제품 정보를 나타내는 데이터 전송 객체
 struct ProductResponseDto: Identifiable, Codable {
     let id: Int
     let brand: String
     let name: String
-    let price: Int
+    let price: Double
     let discountRate: String
     let originalPrice: Int
     let url: URL
@@ -38,21 +37,24 @@ struct ProductResponseDto: Identifiable, Codable {
     }
 }
 
-/// 제품 가격 기록을 나타내는 구조체
 struct PriceHistory: Identifiable, Codable {
     let id: Int
-    let date: Date
+    let date: String
     let price: Double
+    
+    var parsedDate: Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        return dateFormatter.date(from: date)
+    }
 }
 
 extension ProductResponseDto {
-    /// 할인율을 Double 타입으로 변환
     var discountRateValue: Double? {
         Double(discountRate.replacingOccurrences(of: "%", with: ""))
     }
     
-    /// 현재 가격과 원래 가격의 차이
     var priceDifference: Int {
-        originalPrice - price
+        originalPrice - Int(price)
     }
 }

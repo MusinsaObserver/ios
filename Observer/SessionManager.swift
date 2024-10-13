@@ -13,7 +13,6 @@ protocol SessionManagerProtocol {
     func clearSession()
 }
 
-// MARK: - Session Manager Implementation
 class SessionManager: SessionManagerProtocol {
     private let userDefaults: UserDefaults
     private let sessionKey = "authSession"

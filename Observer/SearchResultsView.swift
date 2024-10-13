@@ -17,10 +17,10 @@ struct SearchResultsView: View {
     @State private var isShowingLoginView = false
     @EnvironmentObject private var authViewModel: AuthViewModel
 
-    let apiClient = APIClient(baseUrl: "https://cea9-141-223-234-170.ngrok-free.app")
+    let apiClient = APIClient(baseUrl: "https://dc08-141-223-234-184.ngrok-free.app")
     let favoriteService: FavoriteServiceProtocol
 
-    init(searchQuery: String, products: [ProductResponseDto] = [], favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://cea9-141-223-234-170.ngrok-free.app")!)) {
+    init(searchQuery: String, products: [ProductResponseDto] = [], favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://dc08-141-223-234-184.ngrok-free.app")!)) {
         self.searchQuery = searchQuery
         _products = State(initialValue: products)
         self.favoriteService = favoriteService
@@ -93,16 +93,7 @@ struct SearchResultsView: View {
             .padding(.bottom, Constants.Spacing.medium)
     }
     
-    // 프리뷰에서는 샘플 데이터를 로드하고, 실제 앱에서는 API 호출
     private func fetchSearchResults() {
-        #if DEBUG
-        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
-            self.products = sampleProducts
-            self.isLoading = false
-            return
-        }
-        #endif
-
         isLoading = true
         errorMessage = nil
 

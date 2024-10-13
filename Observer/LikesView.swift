@@ -17,6 +17,7 @@ struct LikesView: View {
     @State private var showPrivacyPolicy = false
     @State private var currentIndex = 0
     @State private var isFetchingMore = false
+    @State private var showAccountDeletionAlert = false
     
     @EnvironmentObject var authViewModel: AuthViewModel
     let apiClient: APIClientProtocol
@@ -40,6 +41,10 @@ struct LikesView: View {
                     } else {
                         productList
                     }
+                    
+                    Spacer()
+                    
+                    logoutAndPrivacyPolicyButtons
                 }
             }
             .navigationDestination(isPresented: $isHomeView) {
@@ -59,6 +64,18 @@ struct LikesView: View {
                     title: Text("오류"),
                     message: Text(errorMessage ?? "알 수 없는 오류가 발생했습니다."),
                     dismissButton: .default(Text("확인"))
+                )
+            }
+            .alert(isPresented: $showAccountDeletionAlert) {
+                Alert(
+                    title: Text("정말로 탈퇴하시겠습니까?"),
+                    message: Text("모든 데이터가 삭제되며 복구할 수 없습니다."),
+                    primaryButton: .destructive(Text("탈퇴"), action: {
+                        Task {
+                            await handleAccountDeletion()
+                        }
+                    }),
+                    secondaryButton: .cancel(Text("취소"))
                 )
             }
             .sheet(isPresented: $showPrivacyPolicy) {
@@ -119,14 +136,7 @@ struct LikesView: View {
         ScrollView {
             LazyVStack(spacing: Constants.Spacing.small) {
                 ForEach(likedProducts, id: \.id) { product in
-                    ProductCardView(product: product)
-                        .onAppear {
-                            if product == likedProducts.last && !isFetchingMore {
-                                Task {
-                                    await fetchMoreProducts()
-                                }
-                            }
-                        }
+                    ProductCardView(product: product, favoriteService: FavoriteService(baseURL: URL(string: "https://dc08-141-223-234-184.ngrok-free.app")!))
                 }
                 
                 if isFetchingMore {
@@ -138,6 +148,47 @@ struct LikesView: View {
             }
             .padding(.horizontal, Constants.Spacing.small)
         }
+        .onAppear {
+            Task {
+                await fetchMoreProductsIfNeeded()
+            }
+        }
+    }
+    
+    private var logoutAndPrivacyPolicyButtons: some View {
+        VStack(spacing: 20) {
+            Button(action: {
+                Task {
+                    await handleLogout()
+                }
+            }) {
+                Text("로그아웃")
+                    .font(.headline)
+                    .foregroundColor(.blue)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(RoundedRectangle(cornerRadius: 10).stroke(Color.blue, lineWidth: 2))
+            }
+            
+            Button(action: {
+                showAccountDeletionAlert = true
+            }) {
+                Text("회원 탈퇴")
+                    .font(.headline)
+                    .foregroundColor(.red)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(RoundedRectangle(cornerRadius: 10).stroke(Color.red, lineWidth: 2))
+            }
+            
+            Button("개인정보 처리방침") {
+                showPrivacyPolicy.toggle()
+            }
+            .font(.footnote)
+            .foregroundColor(.white)
+            .padding(.bottom)
+        }
+        .padding(.horizontal)
     }
     
     private var privacyPolicyView: some View {
@@ -178,7 +229,7 @@ struct LikesView: View {
         isLoading = false
     }
     
-    private func fetchMoreProducts() async {
+    private func fetchMoreProductsIfNeeded() async {
         guard !isFetchingMore else { return }
         
         isFetchingMore = true
@@ -191,6 +242,17 @@ struct LikesView: View {
             showAlert = true
         }
         isFetchingMore = false
+    }
+    
+    private func handleLogout() async {
+        do {
+            try await apiClient.logout()
+            authViewModel.logout()
+            navigateToLogin = true
+        } catch {
+            errorMessage = "로그아웃 중 오류가 발생했습니다: \(error.localizedDescription)"
+            showAlert = true
+        }
     }
     
     private func handleAccountDeletion() async {

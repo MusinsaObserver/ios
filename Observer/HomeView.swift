@@ -35,7 +35,7 @@ struct HomeView: View {
                 }
                 .navigationDestination(isPresented: $isShowingLikesView) {
                     if authViewModel.isLoggedIn {
-                        LikesView(apiClient: APIClient(baseUrl: "https://cea9-141-223-234-170.ngrok-free.app"))
+                        LikesView(apiClient: APIClient(baseUrl: "https://dc08-141-223-234-184.ngrok-free.app"))
                     } else {
                         LoginView()
                     }
@@ -51,13 +51,11 @@ struct HomeView: View {
         .onAppear {
             handleOnAppear()
         }
-        .onChange(of: isShowingLikesView) { newValue in
-            if newValue {
-                authViewModel.checkLoginStatus()
-                if !authViewModel.isLoggedIn {
-                    isShowingLoginView = true
-                    isShowingLikesView = false
-                }
+        .onChange(of: isShowingLikesView) { oldValue, newValue in
+            authViewModel.checkLoginStatus()
+            if !authViewModel.isLoggedIn {
+                isShowingLoginView = true
+                isShowingLikesView = false
             }
         }
     }
@@ -129,7 +127,7 @@ struct HomeView: View {
     }
     
     private func performSearchApiRequest() {
-        guard let url = URL(string: "https://cea9-141-223-234-170.ngrok-free.app/api/product/search?query=\(searchQuery)&page=0&size=100") else {
+        guard let url = URL(string: "https://dc08-141-223-234-184.ngrok-free.app/api/product/search?query=\(searchQuery)&page=0&size=100") else {
             print("Invalid URL")
             return
         }
@@ -147,14 +145,55 @@ struct HomeView: View {
             if let httpResponse = response as? HTTPURLResponse {
                 print("서버 응답 상태 코드: \(httpResponse.statusCode)")
                 if httpResponse.statusCode == 200 {
-                    if let data = data, let jsonString = String(data: data, encoding: .utf8) {
-                        print("응답 JSON: \(jsonString)")
+                    // 응답 JSON을 출력하여 확인
+                    if let data = data {
+                        if let jsonString = String(data: data, encoding: .utf8) {
+                            print("응답 JSON: \(jsonString)")
+                        }
+                        
+                        // 디코딩 시도
+                        do {
+                            let decodedResponse = try JSONDecoder().decode(ProductSearchResponse.self, from: data)
+                            if let products = decodedResponse.data {
+                                DispatchQueue.main.async {
+                                    print("검색된 제품: \(products)")
+                                }
+                            } else {
+                                print("검색된 제품이 없습니다.")
+                            }
+                        } catch let DecodingError.dataCorrupted(context) {
+                            print("디코딩 오류 발생: 데이터 손상 \(context.debugDescription)")
+                        } catch let DecodingError.keyNotFound(key, context) {
+                            print("디코딩 오류 발생: 키를 찾을 수 없음 '\(key.stringValue)' - \(context.debugDescription)")
+                        } catch let DecodingError.typeMismatch(type, context) {
+                            print("디코딩 오류 발생: 타입 불일치 \(type) - \(context.debugDescription)")
+                            print("오류 발생 경로: \(context.codingPath)")
+                        } catch let DecodingError.valueNotFound(value, context) {
+                            print("디코딩 오류 발생: 값을 찾을 수 없음 '\(value)' - \(context.debugDescription)")
+                        } catch {
+                            print("디코딩 오류 발생: \(error.localizedDescription)")
+                        }
                     }
                 } else {
                     print("잘못된 응답이 수신되었습니다.")
                 }
             }
         }.resume()
+    }
+
+
+    struct ProductSearchResponse: Codable {
+        let message: String
+        let data: [ProductResponseDto]?
+        let pagination: Pagination?
+    }
+
+    struct Pagination: Codable {
+        let currentPage: Int
+        let totalPages: Int
+        let pageSize: Int
+        let totalElements: Int
+        let last: Bool
     }
     
     private func performSessionApiRequest() {
@@ -163,7 +202,7 @@ struct HomeView: View {
             return
         }
         
-        guard let url = URL(string: "https://cea9-141-223-234-170.ngrok-free.app") else {
+        guard let url = URL(string: "https://dc08-141-223-234-184.ngrok-free.ap") else {
             print("Invalid URL")
             return
         }

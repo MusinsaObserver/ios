@@ -29,14 +29,12 @@ struct AgreementView: View {
                 VStack(spacing: Constants.Spacing.medium) {
                     Spacer().frame(height: 150)
                     
-                    // 약관 동의 설명 텍스트
                     Text("서비스 이용을 위해\n필수 약관에 동의해주세요.")
                         .font(Font.custom("Pretendard", size: 16).weight(.semibold))
                         .multilineTextAlignment(.center)
                         .foregroundColor(.white)
                         .padding(.top, Constants.Spacing.small)
                     
-                    // 동의 항목들
                     VStack(alignment: .leading, spacing: Constants.Spacing.medium) {
                         CheckBoxView(isChecked: $agreeAll, text: "전체 동의")
                             .onChange(of: agreeAll) {
@@ -82,7 +80,6 @@ struct AgreementView: View {
                     
                     Spacer()
                     
-                    // 동의 버튼
                     Button(action: completeSignUp) {
                         Text("동의하고 계속하기")
                             .font(Font.custom("Pretendard", size: 16).weight(.bold))
@@ -95,9 +92,8 @@ struct AgreementView: View {
                     .disabled(!allAgreementsAccepted)
                     .padding(.horizontal, Constants.Spacing.medium)
                     
-                    Spacer().frame(height: 20) // 홈 인디케이터 위 공간
-                    
-                    // 팝업 뷰
+                    Spacer().frame(height: 20)
+
                     if showTermsPopup {
                         TermsPopupView(
                             title: "서비스 이용 약관",
@@ -125,8 +121,7 @@ struct AgreementView: View {
                         )
                     }
                 }
-                
-                // HomeView로 이동
+
                 NavigationLink(value: "HomeView", label: {
                     EmptyView()
                 })

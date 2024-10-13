@@ -41,15 +41,12 @@ class OAuth2LoginViewModel: ObservableObject {
     }
     
     func handleAuthorizationRequest(request: ASAuthorizationAppleIDRequest) {
-        // 생체 인증 활성화
         request.requestedScopes = [.fullName]
 
-        // nonce가 제대로 생성되어 있지 않으면 다시 생성
         if currentNonce == nil {
             currentNonce = randomNonceString()
         }
 
-        // nonce 해시 생성
         request.nonce = sha256(currentNonce!)
     }
     
@@ -64,7 +61,6 @@ class OAuth2LoginViewModel: ObservableObject {
                 self.onError(OAuth2Error.noIDToken)
             }
         case .failure(let error):
-            // 생체 인증 실패 또는 사용자 취소 등 구체적인 오류 처리
             if let authError = error as? ASAuthorizationError {
                 switch authError.code {
                     case .canceled:
@@ -168,19 +164,4 @@ enum OAuth2Error: Error {
     case invalidBackendURL
     case noIDToken
     case invalidServerResponse
-}
-
-struct OAuth2LoginButton_Previews: PreviewProvider {
-    static var previews: some View {
-        OAuth2LoginButton(
-            clientID: "Apple_id",
-            backendURL: "https://cea9-141-223-234-170.ngrok-free.app",
-            onSuccess: { session in
-                print("Received session: \(session)")
-            },
-            onError: { error in
-                print("Error signing in: \(error.localizedDescription)")
-            }
-        )
-    }
 }

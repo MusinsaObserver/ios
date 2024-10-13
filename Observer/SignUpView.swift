@@ -24,7 +24,7 @@ struct SignUpView: View {
     
     @EnvironmentObject var authViewModel: AuthViewModel
     
-    private let backendURL = "https://cea9-141-223-234-170.ngrok-free.app"
+    private let backendURL = "https://dc08-141-223-234-184.ngrok-free.app"
     
     var body: some View {
         NavigationStack {
@@ -37,20 +37,17 @@ struct SignUpView: View {
                     
                     Spacer()
                     
-                    // 회원가입 제목
                     Text("회원가입")
                         .font(Font.custom("Pretendard", size: 24).weight(.bold))
                         .multilineTextAlignment(.center)
                         .foregroundColor(.white)
                     
-                    // 설명 텍스트
                     Text("서비스 이용을 위해\n가입 및 정보 제공에 동의해주세요.")
                         .font(Font.custom("Pretendard", size: 14))
                         .multilineTextAlignment(.center)
                         .foregroundColor(.white.opacity(0.8))
                         .padding(.top, Constants.Spacing.small)
                     
-                    // 동의 항목들
                     VStack(alignment: .leading, spacing: Constants.Spacing.medium) {
                         CheckBoxView(isChecked: $agreeAll, text: "전체 동의")
                             .onChange(of: agreeAll) {
@@ -100,25 +97,22 @@ struct SignUpView: View {
                     
                     Spacer()
                     
-                    // Apple Sign-In 버튼
                     SignInWithAppleButton(
                         .signIn,
                         onRequest: { request in
-                            // Customize request if needed
                         },
                         onCompletion: handleAuthorization
                     )
                     .signInWithAppleButtonStyle(.white)
                     .frame(height: 50)
                     .padding(.horizontal, Constants.Spacing.medium)
-                    .disabled(!allAgreementsAccepted) // Disable the button if agreements are not accepted
-                    .opacity(allAgreementsAccepted ? 1.0 : 0.5) // Dim the button when disabled
+                    .disabled(!allAgreementsAccepted)
+                    .opacity(allAgreementsAccepted ? 1.0 : 0.5)
                     
-                    Spacer() // 홈 인디케이터 위에 위치하도록 여유 공간 추가
+                    Spacer()
                         .frame(height: 20)
                 }
                 
-                // 약관 팝업
                 if showTermsPopup {
                     TermsPopupView(
                         title: "서비스 이용 약관",
@@ -147,10 +141,10 @@ struct SignUpView: View {
                 }
             }
             .navigationBarHidden(true)
-            .navigationDestination(isPresented: $showAgreementsView) {  // 약관 동의 화면으로 이동
+            .navigationDestination(isPresented: $showAgreementsView) {
                 AgreementView()
             }
-            .navigationDestination(isPresented: $isHomeView) {  // 홈 화면으로 이동
+            .navigationDestination(isPresented: $isHomeView) {
                 HomeView()
             }
         }
@@ -180,10 +174,8 @@ struct SignUpView: View {
                 if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
                    let identityTokenData = appleIDCredential.identityToken,
                    let idTokenString = String(data: identityTokenData, encoding: .utf8) {
-                    // 여기서 idTokenString이 Apple로부터 받은 ID 토큰입니다.
                     print("ID Token: \(idTokenString)")
                     
-                    // 이제 ID 토큰을 백엔드로 전송하는 부분을 호출
                     authenticateWithBackend(idToken: idTokenString)
                     
                 } else {
@@ -219,9 +211,8 @@ struct SignUpView: View {
             if let data = data, let responseString = String(data: data, encoding: .utf8) {
                 print("Response from server: \(responseString)")
                 
-                // Assume backend returns success, we navigate to HomeView
                 DispatchQueue.main.async {
-                    self.isHomeView = true // Navigate to HomeView
+                    self.isHomeView = true
                 }
             } else {
                 print("No data received from server")
@@ -229,7 +220,6 @@ struct SignUpView: View {
         }.resume()
     }
     
-    // 약관 내용들
     func termsOfServiceContent() -> String {
         return """
         제 1 장 총칙
@@ -254,7 +244,6 @@ struct SignUpView: View {
     }
 }
 
-// 체크박스 커스텀 뷰 (팝업 없이 사용하는 경우)
 struct CheckBoxView: View {
     @Binding var isChecked: Bool
     var text: String
@@ -276,7 +265,6 @@ struct CheckBoxView: View {
     }
 }
 
-// 약관 팝업 뷰
 struct TermsPopupView: View {
     var title: String
     var content: String

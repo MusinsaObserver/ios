@@ -15,7 +15,7 @@ struct ProductDetailView: View {
 
     let favoriteService: FavoriteServiceProtocol
 
-    init(product: ProductResponseDto, favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://cea9-141-223-234-170.ngrok-free.app")!)) {
+    init(product: ProductResponseDto, favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://dc08-141-223-234-184.ngrok-free.app")!)) {
         self.product = product
         self.favoriteService = favoriteService
     }
@@ -83,7 +83,6 @@ struct ProductDetailView: View {
 
     private var productDetailsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // 브랜드 이름과 상품 이름, 오른쪽에 하트 버튼
             HStack {
                 VStack(alignment: .leading) {
                     Text(product.brand)
@@ -122,7 +121,7 @@ struct ProductDetailView: View {
     private var actionButtonsSection: some View {
         HStack {
             Button(action: {
-                UIApplication.shared.open(product.url) // Correctly referencing the URL
+                UIApplication.shared.open(product.url)
             }) {
                 Text("무신사 구매 링크")
                     .font(.custom("Pretendard", size: 14))
@@ -137,11 +136,11 @@ struct ProductDetailView: View {
             
             // 할인율과 가격
             VStack(alignment: .trailing) {
-                Text("\(product.discountRate)")
+                Text(product.discountRate)
                     .font(.title3)
                     .foregroundColor(.red)
                 
-                Text("\(formatPrice(product.price))원")
+                Text(formatPrice(product.price))
                     .font(.title2)
                     .foregroundColor(.white)
             }
@@ -172,13 +171,13 @@ struct ProductDetailView: View {
             HStack {
                 Text("최저가:")
                 Spacer()
-                Text(formatPrice(12800))  // 예시 데이터
+                Text(formatPrice(12800))
             }
             
             HStack {
                 Text("최고가:")
                 Spacer()
-                Text(formatPrice(21900))  // 예시 데이터
+                Text(formatPrice(21900))
             }
         }
         .font(.body)
@@ -201,11 +200,15 @@ struct ProductDetailView: View {
         }
     }
 
-    private func formatPrice(_ price: Int) -> String {
+    private func formatPrice(_ price: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "ko_KR")
         return formatter.string(from: NSNumber(value: price)) ?? "\(price)원"
+    }
+
+    private func formatPrice(_ price: Int) -> String {
+        formatPrice(Double(price))
     }
 
     private func safeAreaTop() -> CGFloat {

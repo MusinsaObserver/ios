@@ -43,6 +43,12 @@ enum Constants {
     
     enum FontSize {
         static let small: CGFloat = 14
+        static let medium: CGFloat = 18
+        static let large: CGFloat = 24
+    }
+    
+    enum Size {
+        static let navigationBarHeight: CGFloat = 44
     }
     
     enum Fonts {
