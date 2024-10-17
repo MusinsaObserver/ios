@@ -15,26 +15,21 @@ struct SearchBarView: View {
         HStack {
             TextField("원하는 상품을 검색해보세요!", text: $searchQuery)
                 .padding()
-                .background(Color.white.opacity(0.1))
-                .cornerRadius(25)
+                .background(Constants.Colors.searchBarBackground)
+                .cornerRadius(Constants.CornerRadius.large)
                 .foregroundColor(.white)
+                .accessibilityLabel("상품 검색")
+                .onSubmit {
+                    onSearchButtonClicked()
+                }
             
-            Button(action: {
-                onSearchButtonClicked()
-            }) {
+            Button(action: onSearchButtonClicked) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.white)
-                    .padding(.trailing, 16)
+                    .padding(.trailing, Constants.Spacing.medium)
             }
+            .accessibilityLabel("검색")
         }
         .padding(.horizontal, Constants.Spacing.medium)
-    }
-}
-
-struct SearchBarView_Previews: PreviewProvider {
-    static var previews: some View {
-        SearchBarView(searchQuery: .constant("")) {
-            print("Search button clicked")
-        }
     }
 }

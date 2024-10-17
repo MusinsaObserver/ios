@@ -21,9 +21,10 @@ final class ObserverUITestsLaunchTests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        // Insert steps here to perform after app launch but before taking a screenshot,
-        // such as logging into a test account or navigating somewhere in the app
+        // Ensure that the login button appears on launch
+        XCTAssertTrue(app.buttons["Continue with Apple"].exists)
 
+        // Take a screenshot of the launch screen
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Launch Screen"
         attachment.lifetime = .keepAlways

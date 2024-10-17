@@ -6,78 +6,157 @@
 //
 
 import SwiftUI
-import GoogleSignIn
-import GoogleSignInSwift
+import AuthenticationServices
 
 struct LoginView: View {
+    @State private var isHomeView = false
+    @State private var showAgreementsView = false
+    @State private var loginError: String? = nil
+    @EnvironmentObject var authViewModel: AuthViewModel
+    
+    private let backendURL = "https://dc08-141-223-234-184.ngrok-free.app"
+    
     var body: some View {
-        NavigationView {
-            ZStack {
+        NavigationStack {
+            ZStack(alignment: .top) {
                 Constants.Colors.backgroundDarkGrey
                     .edgesIgnoringSafeArea(.all)
                 
-                VStack {
-                    // 네비게이션 바
-                    NavigationBarView(title: "MUSINSA ⦁ OBSERVER")
+                VStack(spacing: 0) {
+                    Spacer().frame(height: navigationBarHeight)
                     
-                    Spacer()
-                    
-                    // 로그인 텍스트 및 설명
-                    VStack(spacing: Constants.Spacing.small) {
-                        Text("로그인")
-                            .font(Font.custom("Pretendard", size: 24).weight(.bold))
-                            .foregroundColor(.white)
-                        
-                        Text("로그인 시 관심 상품 모아보기 및\n가격 변동 알림 수신이 가능합니다.")
-                            .font(Font.custom("Pretendard", size: 14))
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                    .padding(.bottom, Constants.Spacing.medium)
-                    
-                    // Google 로그인 버튼
-                    OAuth2LoginButton(
-                        clientID: "216085716340-ep8bbvpviq346n7iornnj6posmoktu9g.apps.googleusercontent.com",
-                        backendURL: "https://your-backend-url.com",
-                        buttonText: "Google로 계속하기",
-                        onSuccess: { jwt in
-                            print("Received JWT: \(jwt)")
-                            saveJwtToken(jwt) // JWT 저장
-                        },
-                        onError: { error in
-                            print("Error signing in: \(error.localizedDescription)")
+                    contentView
+                        .navigationDestination(isPresented: $isHomeView) {
+                            HomeView()
                         }
-                    )
-                    .padding(.horizontal, Constants.Spacing.medium)
-                    
-                    Spacer()
-                    
-                    // 회원가입 링크
-                    HStack {
-                        Text("계정이 없으신가요?")
-                            .font(Font.custom("Pretendard", size: 12).weight(.semibold))
-                            .foregroundColor(.white.opacity(0.4))
-                        
-                        NavigationLink(destination: SignUpView()) {
-                            Text("회원가입")
-                                .font(Font.custom("Pretendard", size: 14).weight(.semibold))
-                                .underline()
-                                .foregroundColor(.white.opacity(0.8))
+                        .navigationDestination(isPresented: $showAgreementsView) {
+                            AgreementView()
                         }
-                    }
-                    .padding(.bottom, Constants.Spacing.medium)
+                }
+                
+                navigationBar
+            }
+        }
+        .navigationBarHidden(true)
+    }
+    
+    private var navigationBarHeight: CGFloat {
+        44
+    }
+    
+    private var navigationBar: some View {
+        NavigationBarView(
+            title: "MUSINSA ⦁ OBSERVER",
+            isHomeView: $isHomeView,
+            isShowingLikesView: .constant(false),
+            isShowingLoginView: .constant(false)
+        )
+    }
+    
+    private var contentView: some View {
+        VStack {
+            Spacer()
+            
+            VStack(spacing: Constants.Spacing.small) {
+                Text("로그인")
+                    .font(Font.custom("Pretendard", size: 24).weight(.bold))
+                    .foregroundColor(.white)
+                
+                Text("로그인 시 관심 상품 모아보기 및\n가격 변동 알림 수신이 가능합니다.")
+                    .font(Font.custom("Pretendard", size: 14))
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .padding(.bottom, Constants.Spacing.medium)
+            
+            SignInWithAppleButton(
+                .signIn,
+                onRequest: { request in
+                    // Customize request if needed
+                },
+                onCompletion: handleAuthorization
+            )
+            .signInWithAppleButtonStyle(.white)
+            .frame(height: 50)
+            .padding(.horizontal, Constants.Spacing.medium)
+            
+            if let loginError = loginError {
+                Text(loginError)
+                    .foregroundColor(.red)
+                    .padding()
+            }
+            
+            Spacer()
+            
+            HStack {
+                Text("계정이 없으신가요?")
+                    .font(Font.custom("Pretendard", size: 12).weight(.semibold))
+                    .foregroundColor(.white.opacity(0.4))
+                
+                NavigationLink(destination: SignUpView()) {
+                    Text("회원가입")
+                        .font(Font.custom("Pretendard", size: 14).weight(.semibold))
+                        .underline()
+                        .foregroundColor(.white.opacity(0.8))
                 }
             }
-            .navigationBarHidden(true) // 네비게이션 바 숨김
+            .padding(.bottom, Constants.Spacing.medium)
         }
     }
     
-    // JWT 저장 함수
-    func saveJwtToken(_ token: String) {
-        UserDefaults.standard.set(token, forKey: "jwtToken")
-    }
-}
+    private func handleAuthorization(result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .success(let authorization):
+            if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+               let identityToken = appleIDCredential.identityToken,
+               let idTokenString = String(data: identityToken, encoding: .utf8) {
 
-#Preview {
-    LoginView()
+                authenticateWithBackend(idToken: idTokenString)
+            } else {
+                loginError = "ID 토큰을 받지 못했습니다."
+            }
+        case .failure(let error):
+            loginError = "로그인 오류: \(error.localizedDescription)"
+        }
+    }
+    private func authenticateWithBackend(idToken: String) {
+        guard let url = URL(string: "\(backendURL)/api/auth/apple/login") else {
+            print("Invalid backend URL")
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: String] = ["idToken": idToken]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Network error: \(error.localizedDescription)")
+                return
+            }
+
+            if let httpResponse = response as? HTTPURLResponse {
+                print("Response status code: \(httpResponse.statusCode)")
+            }
+
+            if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                print("Response from server: \(responseString)")
+
+                if let jsonData = try? JSONSerialization.jsonObject(with: data, options: []),
+                   let jsonDict = jsonData as? [String: Any],
+                   let sessionToken = jsonDict["sessionToken"] as? String {
+                    DispatchQueue.main.async {
+                        self.authViewModel.sessionService.saveSession(sessionToken)
+                        self.isHomeView = true
+                    }
+                } else {
+                    print("Failed to parse JSON response")
+                }
+            } else {
+                print("No data received from server")
+            }
+        }.resume()
+    }
 }

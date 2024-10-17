@@ -10,38 +10,51 @@ import Foundation
 struct ProductResponseDto: Identifiable, Codable {
     let id: Int
     let brand: String
-    let productName: String
-    let price: Int
+    let name: String
+    let price: Double
     let discountRate: String
     let originalPrice: Int
-    let productURL: String
-    let imageURL: String
-    let priceHistoryList: [PriceHistory]
+    let url: URL
+    let imageUrl: URL
+    let priceHistory: [PriceHistory]
     let category: String
+    
+    static func ==(lhs: ProductResponseDto, rhs: ProductResponseDto) -> Bool {
+        return lhs.id == rhs.id
+    }
 
-    // Identifiable 프로토콜을 준수하기 위해 'id'를 사용합니다.
     enum CodingKeys: String, CodingKey {
         case id
         case brand
-        case productName
+        case name = "productName"
         case price
         case discountRate
         case originalPrice
-        case productURL
-        case imageURL
-        case priceHistoryList
+        case url = "productURL"
+        case imageUrl = "imageURL"
+        case priceHistory = "priceHistoryList"
         case category
     }
 }
 
 struct PriceHistory: Identifiable, Codable {
     let id: Int
-    let date: Date
+    let date: String
     let price: Double
+    
+    var parsedDate: Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        return dateFormatter.date(from: date)
+    }
+}
 
-    enum CodingKeys: String, CodingKey {
-        case id
-        case date
-        case price
+extension ProductResponseDto {
+    var discountRateValue: Double? {
+        Double(discountRate.replacingOccurrences(of: "%", with: ""))
+    }
+    
+    var priceDifference: Int {
+        originalPrice - Int(price)
     }
 }

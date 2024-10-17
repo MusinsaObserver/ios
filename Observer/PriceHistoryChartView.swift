@@ -15,7 +15,7 @@ struct PriceHistoryChartView: View {
     
     var body: some View {
         let adjustedPriceHistory = addFavoriteDateIfNeeded(priceHistory: priceHistory, favoriteDate: favoriteDate)
-        let currentPrice = adjustedPriceHistory.last?.price ?? 0 // 현재 가격을 마지막 가격으로 설정
+        let currentPrice = adjustedPriceHistory.last?.price ?? 0
         
         GeometryReader { geometry in
             let width = geometry.size.width
@@ -25,91 +25,98 @@ struct PriceHistoryChartView: View {
             
             let priceRange = maxPrice - minPrice
             let yScale = (height - 60) / CGFloat(priceRange)
-            let xScale = (width - 100) / CGFloat(90) * scale // 3달(90일) 기준으로 x축 스케일 설정
+            let xScale = (width - 100) / CGFloat(90) * scale
             
             ZStack {
-                // Background
                 Rectangle()
                     .fill(Color.black)
                     .cornerRadius(8)
-                    .padding(.horizontal, -10) // 좌우로 크기 증가
+                    .padding(.horizontal, -10)
                 
-                // Y-axis
                 Path { path in
                     path.move(to: CGPoint(x: 70, y: 10))
                     path.addLine(to: CGPoint(x: 70, y: height - 50))
                 }
                 .stroke(Color.white, lineWidth: 2)
                 
-                // X-axis
                 Path { path in
                     path.move(to: CGPoint(x: 70, y: height - 50))
-                    path.addLine(to: CGPoint(x: width - 30, y: height - 50)) // 좌우로 크기 증가
+                    path.addLine(to: CGPoint(x: width - 30, y: height - 50))
                 }
                 .stroke(Color.white, lineWidth: 2)
                 
-                // Stepped Price Path
                 Path { path in
                     for (index, history) in adjustedPriceHistory.enumerated() {
-                        let daysSinceStart = Calendar.current.dateComponents([.day], from: adjustedPriceHistory.first!.date, to: history.date).day ?? 0
-                        let xPosition = 70 + CGFloat(daysSinceStart) * xScale
-                        let yPosition = height - 50 - CGFloat(history.price - minPrice) * yScale
-                        
-                        if index == 0 {
-                            path.move(to: CGPoint(x: xPosition, y: yPosition))
-                        } else {
-                            path.addLine(to: CGPoint(x: xPosition, y: path.currentPoint!.y))
-                            path.addLine(to: CGPoint(x: xPosition, y: yPosition))
+                        if let parsedDate = history.parsedDate, let firstParsedDate = adjustedPriceHistory.first?.parsedDate {
+                            let daysSinceStart = Calendar.current.dateComponents([.day], from: firstParsedDate, to: parsedDate).day ?? 0
+                            let xPosition = 70 + CGFloat(daysSinceStart) * xScale
+                            let yPosition = height - 50 - CGFloat(history.price - minPrice) * yScale
+                            
+                            if index == 0 {
+                                path.move(to: CGPoint(x: xPosition, y: yPosition))
+                            } else {
+                                path.addLine(to: CGPoint(x: xPosition, y: path.currentPoint!.y))
+                                path.addLine(to: CGPoint(x: xPosition, y: yPosition))
+                            }
                         }
                     }
                 }
+
                 .stroke(Color.red, lineWidth: 2)
                 
-                // Price change markers and favorite date marker
                 ForEach(adjustedPriceHistory.indices, id: \.self) { index in
-                    let daysSinceStart = Calendar.current.dateComponents([.day], from: adjustedPriceHistory.first!.date, to: adjustedPriceHistory[index].date).day ?? 0
-                    let xPosition = 70 + CGFloat(daysSinceStart) * xScale
-                    let yPosition = height - 50 - CGFloat(adjustedPriceHistory[index].price - minPrice) * yScale
-                    
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 4, height: 4)
-                        .position(x: xPosition, y: yPosition)
-                    
-                    if let favoriteDate = favoriteDate,
-                       Calendar.current.isDate(adjustedPriceHistory[index].date, inSameDayAs: favoriteDate) {
-                        VStack(spacing: 2) {
-                            Text("찜시기")
-                                .font(.caption2)
-                                .foregroundColor(.yellow)
-                            Triangle()
-                                .fill(Color.yellow)
-                                .frame(width: 8, height: 8)
+                    if let firstParsedDate = adjustedPriceHistory.first?.parsedDate,
+                       let currentParsedDate = adjustedPriceHistory[index].parsedDate {
+                        // 첫 번째 기록과 현재 기록의 날짜를 비교하여 일 수 계산
+                        let daysSinceStart = Calendar.current.dateComponents([.day], from: firstParsedDate, to: currentParsedDate).day ?? 0
+                        let xPosition = 70 + CGFloat(daysSinceStart) * xScale
+                        let yPosition = height - 50 - CGFloat(adjustedPriceHistory[index].price - minPrice) * yScale
+                        
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: 4, height: 4)
+                            .position(x: xPosition, y: yPosition)
+                        
+                        if let favoriteDate = favoriteDate,
+                           Calendar.current.isDate(currentParsedDate, inSameDayAs: favoriteDate) {
+                            VStack(spacing: 2) {
+                                Text("찜시기")
+                                    .font(.caption2)
+                                    .foregroundColor(.yellow)
+                                Triangle()
+                                    .fill(Color.yellow)
+                                    .frame(width: 8, height: 8)
+                            }
+                            .position(x: xPosition, y: height - 70)
                         }
-                        .position(x: xPosition, y: height - 70)
                     }
                 }
                 
-                // Dashed line from the current price point to the Y-axis
                 Path { path in
                     let yPosition = height - 50 - CGFloat(Double(currentPrice) - minPrice) * yScale
                     path.move(to: CGPoint(x: 70, y: yPosition))
-                    path.addLine(to: CGPoint(x: width - 30, y: yPosition)) // 좌우로 크기 증가
+                    path.addLine(to: CGPoint(x: width - 30, y: yPosition))
                 }
                 .stroke(Color.red, style: StrokeStyle(lineWidth: 1, dash: [5]))
                 
-                // X-axis labels
                 ForEach(0..<4) { i in
-                    let date = Calendar.current.date(byAdding: .day, value: i * 30, to: adjustedPriceHistory.first!.date)!
-                    let dateText = DateFormatter.shortDateFormatter.string(from: date)
-                    
-                    Text(dateText)
-                        .foregroundColor(.white)
-                        .font(.caption2)
-                        .position(x: 70 + CGFloat(i * 30) * xScale, y: height - 40)
+                    // 첫 번째 기록의 날짜를 Date 타입으로 변환하여 사용
+                    if let firstParsedDate = adjustedPriceHistory.first?.parsedDate {
+                        // i * 30일을 더한 날짜 계산
+                        if let date = Calendar.current.date(byAdding: .day, value: i * 30, to: firstParsedDate) {
+                            // 날짜를 문자열로 변환
+                            let dateText = DateFormatter.shortDateFormatter.string(from: date)
+                            
+                            // 날짜를 표시하는 텍스트 뷰
+                            Text(dateText)
+                                .foregroundColor(.white)
+                                .font(.caption2)
+                                .position(x: 70 + CGFloat(i * 30) * xScale, y: height - 40)
+                        }
+                    }
                 }
+
                 
-                // Y-axis labels
                 VStack(alignment: .trailing, spacing: 0) {
                     Text("\(Int(maxPrice))원")
                     Spacer()
@@ -120,7 +127,6 @@ struct PriceHistoryChartView: View {
                 .frame(width: 60, height: height - 60, alignment: .trailing)
                 .offset(x: -width/2 + 35, y: -15)
 
-                // Current price label
                 Text("\(Int(currentPrice))원")
                     .foregroundColor(.red)
                     .font(.caption)
@@ -140,24 +146,37 @@ struct PriceHistoryChartView: View {
     private func addFavoriteDateIfNeeded(priceHistory: [PriceHistory], favoriteDate: Date?) -> [PriceHistory] {
         guard let favoriteDate = favoriteDate else { return priceHistory }
         
-        // Check if the favorite date already exists in the price history
-        if priceHistory.contains(where: { Calendar.current.isDate($0.date, inSameDayAs: favoriteDate) }) {
+        // 날짜 비교는 parsedDate로 수행
+        if priceHistory.contains(where: { history in
+            if let parsedDate = history.parsedDate {
+                return Calendar.current.isDate(parsedDate, inSameDayAs: favoriteDate)
+            }
+            return false
+        }) {
             return priceHistory
         }
         
-        // Find the closest previous price to the favorite date
-        if let lastPriceBeforeFavoriteDate = priceHistory.last(where: { $0.date < favoriteDate }) {
-            // Create a new PriceHistory entry for the favorite date
-            let favoritePriceHistory = PriceHistory(id: lastPriceBeforeFavoriteDate.id + 1, date: favoriteDate, price: lastPriceBeforeFavoriteDate.price)
+        if let lastPriceBeforeFavoriteDate = priceHistory.last(where: { history in
+            if let parsedDate = history.parsedDate {
+                return parsedDate < favoriteDate
+            }
+            return false
+        }) {
+            let favoritePriceHistory = PriceHistory(id: lastPriceBeforeFavoriteDate.id + 1, date: DateFormatter.shortDateFormatter.string(from: favoriteDate), price: lastPriceBeforeFavoriteDate.price)
             var updatedPriceHistory = priceHistory
             updatedPriceHistory.append(favoritePriceHistory)
-            // Sort by date to maintain chronological order
-            updatedPriceHistory.sort { $0.date < $1.date }
+            updatedPriceHistory.sort {
+                if let date1 = $0.parsedDate, let date2 = $1.parsedDate {
+                    return date1 < date2
+                }
+                return false
+            }
             return updatedPriceHistory
         }
         
         return priceHistory
     }
+
 }
 
 struct Triangle: Shape {
@@ -178,17 +197,3 @@ extension DateFormatter {
         return formatter
     }()
 }
-
-struct PriceHistoryChartView_Previews: PreviewProvider {
-    static var previews: some View {
-        PriceHistoryChartView(priceHistory: samplePriceHistory, favoriteDate: DateFormatter.shortDateFormatter.date(from: "08/01"))
-    }
-}
-
-let samplePriceHistory: [PriceHistory] = [
-    PriceHistory(id: 1, date: DateFormatter.shortDateFormatter.date(from: "05/19")!, price: 12800),
-    PriceHistory(id: 2, date: DateFormatter.shortDateFormatter.date(from: "05/28")!, price: 21900),
-    PriceHistory(id: 3, date: DateFormatter.shortDateFormatter.date(from: "08/01")!, price: 21900),
-    PriceHistory(id: 4, date: DateFormatter.shortDateFormatter.date(from: "08/02")!, price: 14700),
-    PriceHistory(id: 5, date: DateFormatter.shortDateFormatter.date(from: "08/19")!, price: 14700)
-]

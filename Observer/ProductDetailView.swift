@@ -13,223 +13,210 @@ struct ProductDetailView: View {
     @State private var showLoginAlert = false
     @State private var isShowingLogin = false
 
-    let apiClient = APIClient(baseUrl: "https://your-api-base-url.com")
+    let favoriteService: FavoriteServiceProtocol
 
-    // JWT 토큰을 UserDefaults에서 가져와 로그인 상태를 확인
+    init(product: ProductResponseDto, favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://dc08-141-223-234-184.ngrok-free.app")!)) {
+        self.product = product
+        self.favoriteService = favoriteService
+    }
+
     private var isLoggedIn: Bool {
-        return UserDefaults.standard.string(forKey: "jwtToken") != nil
+        return SessionManager().getSession() != nil
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                NavigationBarView(title: "MUSINSA ⦁ OBSERVER")
-                ScrollView {
-                    VStack(spacing: 8) {
-                        // 상품 이미지
-                        AsyncImage(url: URL(string: product.imageURL)) { image in
-                            image
-                                .resizable()
-                                .scaledToFit()
-                        } placeholder: {
-                            ProgressView()
-                                .frame(height: 300)
-                        }
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            // 브랜드명
-                            Text(product.brand)
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                            
-                            // 상품명
-                            Text(product.productName)
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            
-                            // 하트 버튼
-                            HStack {
-                                Button(action: {
-                                    if isLoggedIn {
-                                        isLiked.toggle()
-                                        Task {
-                                            await handleLikeAction()
-                                        }
-                                    } else {
-                                        showLoginAlert = true
-                                    }
-                                }) {
-                                    Image(systemName: isLiked ? "heart.fill" : "heart")
-                                        .foregroundColor(isLiked ? .red : .white)
-                                        .font(.system(size: 24))
-                                }
-                                .alert(isPresented: $showLoginAlert) {
-                                    Alert(
-                                        title: Text("로그인 필요"),
-                                        message: Text("로그인 후 사용 가능한 기능입니다."),
-                                        primaryButton: .default(Text("로그인"), action: {
-                                            isShowingLogin = true
-                                        }),
-                                        secondaryButton: .cancel()
-                                    )
-                                }
-                                
-                                Spacer()
-                            }
-                            .padding(.vertical, 8)
-                        }
-                        .padding(.horizontal, 16)
-                        
-                        // 무신사 구매 링크
-                        Button(action: {
-                            if let url = URL(string: product.productURL) {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            Text("무신사 구매 링크")
-                                .font(.custom("Pretendard", size: 14))
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white)
-                                .foregroundColor(.black)
-                                .cornerRadius(8)
-                        }
-                        .padding(.horizontal, 16)
-                        
-                        // 할인 정보
-                        Text("\(product.discountRate) \(formatPrice(product.price))원")
-                            .font(.title2)
-                            .foregroundColor(.red)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 4)
-                        
-                        // 가격 그래프 추가
-                        VStack(alignment: .leading) {
-                            Text("가격 그래프")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            PriceHistoryChartView(priceHistory: product.priceHistoryList)
-                                .frame(height: 250) // 그래프의 높이 설정
-                        }
-                        .padding(.horizontal, 16)
-                        
-                        // 가격 정보
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("정가: \(formatPrice(24200))")
-                            Text("최고 할인가: \(formatPrice(21900))")
-                            Text("최저 할인가: \(formatPrice(12800))")
-                            Text("평균 가격: \(formatPrice(17350))")
-                        }
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.8))
-                        .padding(.horizontal, 16)
-                        
-                        // 로그인하지 않은 경우 표시할 추가 UI
-                        if !isLoggedIn {
-                            VStack(spacing: 8) {
-                                Text("로그인 시 찜하기 및 가격 변동 알림받기 기능을 사용할 수 있습니다.")
-                                    .font(.custom("Pretendard", size: 14))
-                                    .foregroundColor(.white.opacity(0.8))
-                                    .multilineTextAlignment(.center)
-                                
-                                Button(action: {
-                                    isShowingLogin = true
-                                }) {
-                                    Text("로그인")
-                                        .font(.custom("Pretendard", size: 14).weight(.bold))
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.white)
-                                        .foregroundColor(.black)
-                                        .cornerRadius(8)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.top, 16)
-                        }
-                        
-                        // 추천 유사 상품
-                        VStack(alignment: .leading) {
-                            Text("추천 유사 상품")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            
-                            ScrollView(.horizontal) {
-                                HStack {
-                                    ForEach(recommendedProducts) { product in
-                                        NavigationLink(destination: ProductDetailView(product: product)) {
-                                            ProductCardView(product: product)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 16)
-                            }
-                        }
-                    }
+        VStack(spacing: 0) {
+            NavigationBarView(
+                title: "MUSINSA ⦁ OBSERVER",
+                isHomeView: .constant(false),
+                isShowingLikesView: .constant(false),
+                isShowingLoginView: .constant(false)
+            )
+            .padding(.top, safeAreaTop())
+            
+            ScrollView {
+                VStack(spacing: 8) {
+                    productImageSection
+                    productDetailsSection
+                    actionButtonsSection
+                    priceGraphSection
+                    priceInfoSection
                 }
-                .background(Constants.Colors.backgroundDarkGrey)
-                .edgesIgnoringSafeArea(.all)
-                .navigationDestination(isPresented: $isShowingLogin) {
-                    LoginView() // 로그인 페이지로 이동
+            }
+            .background(Constants.Colors.backgroundDarkGrey)
+            .edgesIgnoringSafeArea(.all)
+        }
+        .onAppear {
+            Task {
+                do {
+                    isLiked = try await favoriteService.checkFavoriteStatus(for: product.id)
+                } catch {
+                    print("Error checking favorite status: \(error.localizedDescription)")
                 }
             }
         }
+        .navigationBarHidden(true)
     }
 
-    private func handleLikeAction() async {
-        guard let userId = getUserId() else {
-            print("사용자 ID를 가져올 수 없습니다.")
-            return
-        }
+    // MARK: - Subviews
 
-        do {
-            if isLiked {
-                let response = try await apiClient.likeProduct(userId: userId, productId: product.id)
-                print("찜 성공: \(response)")
-            } else {
-                let response = try await apiClient.unlikeProduct(userId: userId, productId: product.id)
-                print("찜 해제 성공: \(response)")
+    private var productImageSection: some View {
+        AsyncImage(url: product.imageUrl) { phase in
+            switch phase {
+            case .empty:
+                ProgressView()
+                    .frame(height: 300)
+            case .success(let image):
+                image
+                    .resizable()
+                    .scaledToFit()
+            case .failure:
+                Image(systemName: "xmark.circle")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 300)
+            @unknown default:
+                EmptyView()
             }
-        } catch {
-            print("찜하기/해제 실패: \(error.localizedDescription)")
-            await MainActor.run {
-                isLiked.toggle() // 실패 시, 원래 상태로 되돌리기
-            }
         }
     }
 
-    private func getUserId() -> String? {
-        // JWT 토큰에서 사용자 ID를 추출하는 로직
-        // 예시: return UserDefaults.standard.string(forKey: "userId")
-        return UserDefaults.standard.string(forKey: "userId")
+    private var productDetailsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading) {
+                    Text(product.brand)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    Text(product.name)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                }
+
+                Spacer()
+
+                Button(action: {
+                    handleLikeAction()
+                }) {
+                    Image(systemName: isLiked ? "heart.fill" : "heart")
+                        .foregroundColor(isLiked ? .red : .white)
+                        .font(.system(size: 24))
+                }
+                .alert(isPresented: $showLoginAlert) {
+                    Alert(
+                        title: Text("로그인 필요"),
+                        message: Text("로그인 후 사용 가능한 기능입니다."),
+                        primaryButton: .default(Text("로그인"), action: {
+                            isShowingLogin = true
+                        }),
+                        secondaryButton: .cancel()
+                    )
+                }
+            }
+            .padding(.horizontal, 16)
+        }
     }
 
-    private func formatPrice(_ price: Int) -> String {
+    private var actionButtonsSection: some View {
+        HStack {
+            Button(action: {
+                UIApplication.shared.open(product.url)
+            }) {
+                Text("무신사 구매 링크")
+                    .font(.custom("Pretendard", size: 14))
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.white)
+                    .foregroundColor(.black)
+                    .cornerRadius(8)
+            }
+            
+            Spacer()
+            
+            // 할인율과 가격
+            VStack(alignment: .trailing) {
+                Text(product.discountRate)
+                    .font(.title3)
+                    .foregroundColor(.red)
+                
+                Text(formatPrice(product.price))
+                    .font(.title2)
+                    .foregroundColor(.white)
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+
+    private var priceGraphSection: some View {
+        VStack(alignment: .leading) {
+            Text("가격 그래프")
+                .font(.headline)
+                .foregroundColor(.white)
+
+            PriceHistoryChartView(priceHistory: product.priceHistory)
+                .frame(height: 250)
+        }
+        .padding(.horizontal, 16)
+    }
+
+    private var priceInfoSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("정가:")
+                Spacer()
+                Text(formatPrice(product.originalPrice))
+            }
+            
+            HStack {
+                Text("최저가:")
+                Spacer()
+                Text(formatPrice(12800))
+            }
+            
+            HStack {
+                Text("최고가:")
+                Spacer()
+                Text(formatPrice(21900))
+            }
+        }
+        .font(.body)
+        .foregroundColor(.white.opacity(0.8))
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: - Helper Functions
+    private func handleLikeAction() {
+        if isLoggedIn {
+            Task {
+                do {
+                    isLiked = try await favoriteService.toggleFavorite(for: product.id)
+                } catch {
+                    print("찜하기/해제 실패: \(error.localizedDescription)")
+                }
+            }
+        } else {
+            showLoginAlert = true
+        }
+    }
+
+    private func formatPrice(_ price: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "ko_KR")
         return formatter.string(from: NSNumber(value: price)) ?? "\(price)원"
     }
-}
 
-let recommendedProducts: [ProductResponseDto] = [
-    ProductResponseDto(id: 1, brand: "후크", productName: "빈티지 워싱 네이비 체크셔츠", price: 43900, discountRate: "53%", originalPrice: 90000, productURL: "https://example.com/product/1", imageURL: "https://example.com/image1.jpg", priceHistoryList: samplePriceHistory, category: "셔츠"),
-    ProductResponseDto(id: 2, brand: "이즈", productName: "린넨 셔츠 [오버사이즈 핏]_블랙_남성용", price: 31500, discountRate: "50%", originalPrice: 63000, productURL: "https://example.com/product/2", imageURL: "https://example.com/image2.jpg", priceHistoryList: samplePriceHistory, category: "셔츠")
-]
+    private func formatPrice(_ price: Int) -> String {
+        formatPrice(Double(price))
+    }
 
-struct ProductDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        ProductDetailView(product: ProductResponseDto(
-            id: 1,
-            brand: "테스트 브랜드",
-            productName: "테스트 상품",
-            price: 15000,
-            discountRate: "50%",
-            originalPrice: 30000,
-            productURL: "https://example.com/product/1",
-            imageURL: "https://example.com/image.jpg",
-            priceHistoryList: samplePriceHistory,
-            category: "테스트 카테고리"
-        ))
+    private func safeAreaTop() -> CGFloat {
+        return UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?
+            .windows
+            .first?
+            .safeAreaInsets.top ?? 0
     }
 }

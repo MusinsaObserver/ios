@@ -11,15 +11,13 @@ struct ProductCardView: View {
     var product: ProductResponseDto
     @State private var isFavorite = false
     @State private var showLoginAlert = false
+    @EnvironmentObject private var authViewModel: AuthViewModel
+    let favoriteService: FavoriteServiceProtocol
 
-    var isLoggedIn: Bool {
-        return UserDefaults.standard.string(forKey: "jwtToken") != nil
-    }
-    
     var body: some View {
         NavigationLink(destination: ProductDetailView(product: product)) {
             VStack(alignment: .leading) {
-                AsyncImage(url: URL(string: product.imageURL)) { phase in
+                AsyncImage(url: product.imageUrl) { phase in
                     switch phase {
                     case .empty:
                         ProgressView()
@@ -30,7 +28,7 @@ struct ProductCardView: View {
                             .scaledToFit()
                             .frame(height: 180)
                             .cornerRadius(8)
-                            .transition(.opacity) // Fade-in animation
+                            .transition(.opacity)
                     case .failure:
                         Image(systemName: "xmark.circle")
                             .resizable()
@@ -41,7 +39,7 @@ struct ProductCardView: View {
                     }
                 }
                 
-                Text(product.productName)
+                Text(product.name)
                     .font(.custom("Pretendard", size: 14))
                     .foregroundColor(.white)
                     .lineLimit(1)
@@ -51,39 +49,64 @@ struct ProductCardView: View {
                         .font(.custom("Pretendard", size: 14).weight(.bold))
                         .foregroundColor(.white)
                     Spacer()
-                    Button(action: {
-                        if isLoggedIn {
-                            isFavorite.toggle()
-                            // Here, you could optimistically update the UI
-                        } else {
-                            showLoginAlert.toggle()
-                        }
-                    }) {
-                        Image(systemName: isFavorite ? "heart.fill" : "heart")
-                            .foregroundColor(isFavorite ? .red : .white)
-                    }
-                    .alert(isPresented: $showLoginAlert) {
-                        Alert(
-                            title: Text("로그인 필요"),
-                            message: Text("로그인 후 사용 가능한 기능입니다."),
-                            primaryButton: .default(Text("로그인"), action: {
-                                // Navigate to login view
-                            }),
-                            secondaryButton: .cancel()
-                        )
-                    }
+                    favoriteButton
                 }
             }
             .padding()
             .background(Color.white.opacity(0.1))
             .cornerRadius(8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onAppear {
+            Task {
+                do {
+                    isFavorite = try await favoriteService.checkFavoriteStatus(for: product.id)
+                } catch {
+                    print("Error checking favorite status: \(error.localizedDescription)")
+                }
+            }
         }
     }
-    
-    private func formatPrice(_ price: Int) -> String {
+
+    private var favoriteButton: some View {
+        Button(action: {
+            if authViewModel.isLoggedIn {
+                Task {
+                    do {
+                        let newStatus = try await favoriteService.toggleFavorite(for: product.id)
+                        isFavorite = newStatus
+                    } catch {
+                        print("Error toggling favorite: \(error.localizedDescription)")
+                    }
+                }
+            } else {
+                showLoginAlert = true
+            }
+        }) {
+            Image(systemName: isFavorite ? "heart.fill" : "heart")
+                .foregroundColor(isFavorite ? .red : .white)
+        }
+        .alert(isPresented: $showLoginAlert) {
+            Alert(
+                title: Text("로그인 필요"),
+                message: Text("로그인 후 사용 가능한 기능입니다."),
+                primaryButton: .default(Text("로그인"), action: {
+                }),
+                secondaryButton: .cancel()
+            )
+        }
+        .accessibilityLabel(isFavorite ? "Remove from favorites" : "Add to favorites")
+    }
+
+    private func formatPrice(_ price: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "ko_KR")
         return formatter.string(from: NSNumber(value: price)) ?? "\(price)"
+    }
+
+    private func formatPrice(_ price: Int) -> String {
+        formatPrice(Double(price))
     }
 }

@@ -8,232 +8,266 @@
 import SwiftUI
 
 struct LikesView: View {
-    @State var likedProducts: [ProductResponseDto] = []
+    @State private var isHomeView = false
+    @State private var likedProducts: [ProductResponseDto] = []
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
     @State private var showAlert = false
     @State private var navigateToLogin = false
-    @State private var navigateToSignUp = false
     @State private var showPrivacyPolicy = false
+    @State private var currentIndex = 0
+    @State private var isFetchingMore = false
+    @State private var showAccountDeletionAlert = false
     
-    let apiClient = APIClient(baseUrl: "https://your-api-base-url.com")
-
+    @EnvironmentObject var authViewModel: AuthViewModel
+    let apiClient: APIClientProtocol
+    
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 16) {
-                // "마이페이지" 글씨
-                Text("마이페이지")
-                    .font(.title)
-                    .bold()
-                    .foregroundColor(.white)
-                    .padding(.top, 50) // 위치를 조정
-
-                // "하트 이모지 + 찜목록" 노란 글씨
-                HStack {
-                    Text("💛")
-                        .font(.largeTitle)
-                    Text("찜 목록")
-                        .font(.title3)
-                        .bold()
-                        .foregroundColor(Color.yellow)
-                }
-            }
-            .padding(.bottom, 20) // 추가적인 아래 여백
-
-            if isLoading {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle())
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let errorMessage = errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                // 찜한 상품 목록을 가로로 스크롤 가능하게 표시
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 16) {
-                        ForEach(likedProducts) { product in
-                            NavigationLink(destination: ProductDetailView(product: product)) {
-                                ProductCardView(product: product)
-                                    .frame(width: 200) // 카드뷰의 너비를 지정
-                            }
-                        }
+        NavigationStack {
+            ZStack {
+                Constants.Colors.backgroundDarkGrey
+                    .edgesIgnoringSafeArea(.all)
+                
+                VStack(spacing: 0) {
+                    navigationBar
+                    
+                    if isLoading && likedProducts.isEmpty {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(2)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if likedProducts.isEmpty {
+                        emptyStateView
+                    } else {
+                        productList
                     }
-                    .padding(.horizontal, 16)
-                }
-                .background(Color.black.opacity(0.85)) // 배경색을 어둡게
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-
-            Spacer()
-
-            // 로그아웃 및 회원 탈퇴 버튼
-            HStack {
-                Button(action: {
-                    handleLogout()
-                }) {
-                    Text("로그아웃")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.gray.opacity(0.8))
-                        .cornerRadius(10)
-                }
-
-                Button(action: {
-                    showAlert.toggle()
-                }) {
-                    Text("회원 탈퇴")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red.opacity(0.8))
-                        .cornerRadius(10)
-                }
-                .alert(isPresented: $showAlert) {
-                    Alert(
-                        title: Text("정말로 탈퇴하시겠습니까?"),
-                        message: Text("사용자 데이터가 즉시 삭제되며 복구할 수 없습니다."),
-                        primaryButton: .destructive(Text("예"), action: {
-                            Task {
-                                await handleAccountDeletion()
-                            }
-                        }),
-                        secondaryButton: .cancel(Text("아니오"))
-                    )
+                    
+                    Spacer()
+                    
+                    logoutAndPrivacyPolicyButtons
                 }
             }
-            .padding(.horizontal)
-            .padding(.bottom, 8)
-
-            // 개인정보 처리방침 버튼
-            Button(action: {
-                showPrivacyPolicy.toggle()
-            }) {
-                Text("개인정보 처리방침")
-                    .font(.footnote)
-                    .foregroundColor(.gray)
-                    .padding(.top, 8)
+            .navigationDestination(isPresented: $isHomeView) {
+                HomeView()
             }
-            .alert(isPresented: $showPrivacyPolicy) {
+            .navigationDestination(isPresented: $navigateToLogin) {
+                LoginView()
+            }
+            .navigationBarHidden(true)
+            .onAppear {
+                Task {
+                    await fetchLikedProducts()
+                }
+            }
+            .alert(isPresented: $showAlert) {
                 Alert(
-                    title: Text("개인정보 처리방침"),
-                    message: Text("여기에 개인정보 처리방침 내용을 적어주세요.\n\n개인정보 처리방침은 고객의 데이터를 안전하게 관리하기 위한 조치를 포함하며, 모든 관련 법규를 준수합니다."),
+                    title: Text("오류"),
+                    message: Text(errorMessage ?? "알 수 없는 오류가 발생했습니다."),
                     dismissButton: .default(Text("확인"))
                 )
             }
-
-            .navigationDestination(isPresented: $navigateToLogin) {
-                    LoginView()
-                }
-            .navigationDestination(isPresented: $navigateToSignUp) {
-                SignUpView()
+            .alert(isPresented: $showAccountDeletionAlert) {
+                Alert(
+                    title: Text("정말로 탈퇴하시겠습니까?"),
+                    message: Text("모든 데이터가 삭제되며 복구할 수 없습니다."),
+                    primaryButton: .destructive(Text("탈퇴"), action: {
+                        Task {
+                            await handleAccountDeletion()
+                        }
+                    }),
+                    secondaryButton: .cancel(Text("취소"))
+                )
             }
-        }
-        .background(Color.black.opacity(0.85)) // 배경색을 어둡게
-        .edgesIgnoringSafeArea(.all)
-        .onAppear {
-            #if DEBUG
-            if likedProducts.isEmpty {
-                likedProducts = sampleProducts
+            .sheet(isPresented: $showPrivacyPolicy) {
+                privacyPolicyView
             }
-            #else
-            fetchLikedProducts()
-            #endif
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await fetchLikedProducts()
         }
     }
-
-    private func handleLogout() {
-        // 로그아웃 로직: JWT 토큰 삭제
-        UserDefaults.standard.removeObject(forKey: "jwtToken")
-        // 로그인 화면으로 이동
-        navigateToLogin = true
+    
+    private var navigationBar: some View {
+        HStack {
+            Button(action: {
+                isHomeView = true
+            }) {
+                Image(systemName: "chevron.left")
+                    .foregroundColor(.white)
+                    .imageScale(.large)
+            }
+            .padding(.leading, Constants.Spacing.medium)
+            
+            Spacer()
+            
+            Text("찜")
+                .font(.system(size: Constants.FontSize.large, weight: .bold))
+                .foregroundColor(.white)
+            
+            Spacer()
+            
+            Button(action: {
+                showPrivacyPolicy = true
+            }) {
+                Image(systemName: "ellipsis")
+                    .foregroundColor(.white)
+                    .imageScale(.large)
+                    .rotationEffect(.degrees(90))
+            }
+            .padding(.trailing, Constants.Spacing.medium)
+        }
+        .frame(height: Constants.Size.navigationBarHeight)
+        .background(Constants.Colors.backgroundDarkGrey)
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: Constants.Spacing.large) {
+            Image(systemName: "heart.slash")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 100, height: 100)
+                .foregroundColor(.gray)
+            
+            Text("찜한 상품이 없습니다")
+                .font(.system(size: Constants.FontSize.medium))
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var productList: some View {
+        ScrollView {
+            LazyVStack(spacing: Constants.Spacing.small) {
+                ForEach(likedProducts, id: \.id) { product in
+                    ProductCardView(product: product, favoriteService: FavoriteService(baseURL: URL(string: "https://dc08-141-223-234-184.ngrok-free.app")!))
+                }
+                
+                if isFetchingMore {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                }
+            }
+            .padding(.horizontal, Constants.Spacing.small)
+        }
+        .onAppear {
+            Task {
+                await fetchMoreProductsIfNeeded()
+            }
+        }
+    }
+    
+    private var logoutAndPrivacyPolicyButtons: some View {
+        VStack(spacing: 20) {
+            Button(action: {
+                Task {
+                    await handleLogout()
+                }
+            }) {
+                Text("로그아웃")
+                    .font(.headline)
+                    .foregroundColor(.blue)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(RoundedRectangle(cornerRadius: 10).stroke(Color.blue, lineWidth: 2))
+            }
+            
+            Button(action: {
+                showAccountDeletionAlert = true
+            }) {
+                Text("회원 탈퇴")
+                    .font(.headline)
+                    .foregroundColor(.red)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(RoundedRectangle(cornerRadius: 10).stroke(Color.red, lineWidth: 2))
+            }
+            
+            Button("개인정보 처리방침") {
+                showPrivacyPolicy.toggle()
+            }
+            .font(.footnote)
+            .foregroundColor(.white)
+            .padding(.bottom)
+        }
+        .padding(.horizontal)
+    }
+    
+    private var privacyPolicyView: some View {
+        NavigationView {
+            VStack {
+                Text("개인정보 처리방침")
+                    .font(.title)
+                    .padding()
+                
+                Text("이 앱은 사용자의 개인정보를 수집하고 처리합니다...")
+                    .padding()
+                
+                Spacer()
+                
+                Button("회원 탈퇴") {
+                    Task {
+                        await handleAccountDeletion()
+                    }
+                }
+                .foregroundColor(.red)
+                .padding()
+            }
+            .navigationBarItems(trailing: Button("닫기") {
+                showPrivacyPolicy = false
+            })
+        }
     }
     
     private func fetchLikedProducts() async {
         isLoading = true
-        errorMessage = nil
-
-        guard let userId = getUserId() else {
-            isLoading = false
-            errorMessage = "사용자 정보를 가져올 수 없습니다."
-            return
-        }
-
         do {
-            likedProducts = try await apiClient.getLikedProducts(userId: userId)
-            isLoading = false
+            likedProducts = try await apiClient.getLikedProducts(offset: 0, limit: 10)
+            currentIndex = likedProducts.count
         } catch {
-            isLoading = false
-            errorMessage = "찜한 상품을 가져오는 데 실패했습니다: \(error.localizedDescription)"
+            errorMessage = error.localizedDescription
+            showAlert = true
         }
+        isLoading = false
     }
-
-    private func handleAccountDeletion() async {
-        guard let userId = getUserId() else {
-            errorMessage = "사용자 정보를 가져올 수 없습니다."
-            return
-        }
-
+    
+    private func fetchMoreProductsIfNeeded() async {
+        guard !isFetchingMore else { return }
+        
+        isFetchingMore = true
         do {
-            let success = try await apiClient.deleteAccount(userId: userId)
-            if success {
-                UserDefaults.standard.removeObject(forKey: "jwtToken")
-                navigateToSignUp = true
-            } else {
-                errorMessage = "회원 탈퇴에 실패했습니다. 다시 시도해 주세요."
-            }
+            let newProducts = try await apiClient.getLikedProducts(offset: currentIndex, limit: 10)
+            likedProducts.append(contentsOf: newProducts)
+            currentIndex += newProducts.count
         } catch {
-            errorMessage = "회원 탈퇴 중 오류가 발생했습니다: \(error.localizedDescription)"
+            errorMessage = error.localizedDescription
+            showAlert = true
+        }
+        isFetchingMore = false
+    }
+    
+    private func handleLogout() async {
+        do {
+            try await apiClient.logout()
+            authViewModel.logout()
+            navigateToLogin = true
+        } catch {
+            errorMessage = "로그아웃 중 오류가 발생했습니다: \(error.localizedDescription)"
+            showAlert = true
         }
     }
     
-    private func getUserId() -> String? {
-        guard let jwtToken = UserDefaults.standard.string(forKey: "jwtToken") else {
-            return nil
+    private func handleAccountDeletion() async {
+        do {
+            let success = try await apiClient.deleteAccount()
+            if success {
+                authViewModel.logout()
+                navigateToLogin = true
+            } else {
+                errorMessage = "회원 탈퇴에 실패했습니다. 다시 시도해 주세요."
+                showAlert = true
+            }
+        } catch {
+            errorMessage = "회원 탈퇴 중 오류가 발생했습니다: \(error.localizedDescription)"
+            showAlert = true
         }
-        return parseJWTToken(jwtToken)
-    }
-
-    private func parseJWTToken(_ token: String) -> String? {
-        let segments = token.split(separator: ".")
-        guard segments.count == 3, let payloadData = base64UrlDecode(String(segments[1])) else {
-            return nil
-        }
-        if let json = try? JSONSerialization.jsonObject(with: payloadData, options: []),
-           let payload = json as? [String: Any],
-           let userId = payload["user_id"] as? String {
-            return userId
-        }
-        return nil
-    }
-
-    private func base64UrlDecode(_ value: String) -> Data? {
-        var base64 = value.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
-        let length = base64.lengthOfBytes(using: .utf8)
-        let paddedLength = ((length + 3) / 4) * 4
-        base64 = base64.padding(toLength: paddedLength, withPad: "=", startingAt: 0)
-        return Data(base64Encoded: base64)
-    }
-}
-
-// 예제 프리뷰 데이터
-let sampleProducts: [ProductResponseDto] = [
-    ProductResponseDto(id: 1, brand: "브랜드A", productName: "상품A", price: 14900, discountRate: "70%", originalPrice: 49600, productURL: "", imageURL: "https://via.placeholder.com/200", priceHistoryList: [], category: "카테고리A"),
-    ProductResponseDto(id: 2, brand: "브랜드B", productName: "상품B", price: 19900, discountRate: "60%", originalPrice: 49800, productURL: "", imageURL: "https://via.placeholder.com/200", priceHistoryList: [], category: "카테고리B"),
-    ProductResponseDto(id: 3, brand: "브랜드C", productName: "상품C", price: 24900, discountRate: "50%", originalPrice: 49800, productURL: "", imageURL: "https://via.placeholder.com/200", priceHistoryList: [], category: "카테고리C")
-]
-
-// 미리보기
-struct LikesView_Previews: PreviewProvider {
-    static var previews: some View {
-        LikesView(likedProducts: sampleProducts)
     }
 }
