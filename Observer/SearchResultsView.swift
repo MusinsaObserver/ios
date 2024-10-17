@@ -92,15 +92,18 @@ struct SearchResultsView: View {
             .padding(.horizontal, Constants.Spacing.medium)
             .padding(.bottom, Constants.Spacing.medium)
     }
-    
+
     private func fetchSearchResults() {
         isLoading = true
         errorMessage = nil
 
         Task {
             do {
-                let fetchedProducts = try await apiClient.searchProducts(query: searchQuery)
-                products = fetchedProducts
+                // APIClient에서 SearchResponse 타입을 반환
+                let response = try await apiClient.searchProducts(query: searchQuery)
+                
+                // 응답에서 data를 바로 products 배열에 할당
+                products = response.data
                 isLoading = false
             } catch {
                 errorMessage = "검색 결과를 불러오는데 실패했습니다."
@@ -108,6 +111,7 @@ struct SearchResultsView: View {
             }
         }
     }
+
     
     private func safeAreaTop() -> CGFloat {
         return UIApplication.shared.connectedScenes

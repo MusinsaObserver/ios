@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F14414082CBFE599005C4167 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14414072CBFE599005C4167 /* APIModels.swift */; };
 		F17F2ABC2C900FC500C6804F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F17F2ABB2C900FC500C6804F /* Assets.xcassets */; };
 		F17F2ABF2C900FC500C6804F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F17F2ABE2C900FC500C6804F /* Preview Assets.xcassets */; };
 		F17F2AD32C900FC600C6804F /* ObserverUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17F2AD22C900FC600C6804F /* ObserverUITests.swift */; };
@@ -58,6 +59,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F14414072CBFE599005C4167 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
 		F17F2AB42C900FC400C6804F /* Observer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Observer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F17F2ABB2C900FC500C6804F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F17F2ABE2C900FC500C6804F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -168,6 +170,7 @@
 				F17F2AFF2C9016DD00C6804F /* SignUpView.swift */,
 				F17F2ABB2C900FC500C6804F /* Assets.xcassets */,
 				F17F2ABD2C900FC500C6804F /* Preview Content */,
+				F14414072CBFE599005C4167 /* APIModels.swift */,
 			);
 			path = Observer;
 			sourceTree = "<group>";
@@ -335,6 +338,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F14414082CBFE599005C4167 /* APIModels.swift in Sources */,
 				F17F2AEA2C9010DC00C6804F /* PriceHistoryChartView.swift in Sources */,
 				F17F2AF82C9011F800C6804F /* APIClient.swift in Sources */,
 				F17F2AE22C90106A00C6804F /* LoginView.swift in Sources */,

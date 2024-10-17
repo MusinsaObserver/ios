@@ -141,26 +141,23 @@ struct HomeView: View {
                 print("검색 결과를 불러오는데 실패했습니다: \(error.localizedDescription)")
                 return
             }
-
+            
             if let httpResponse = response as? HTTPURLResponse {
                 print("서버 응답 상태 코드: \(httpResponse.statusCode)")
                 if httpResponse.statusCode == 200 {
-                    // 응답 JSON을 출력하여 확인
                     if let data = data {
                         if let jsonString = String(data: data, encoding: .utf8) {
                             print("응답 JSON: \(jsonString)")
                         }
                         
-                        // 디코딩 시도
                         do {
-                            let decodedResponse = try JSONDecoder().decode(ProductSearchResponse.self, from: data)
-                            if let products = decodedResponse.data {
-                                DispatchQueue.main.async {
-                                    print("검색된 제품: \(products)")
-                                }
-                            } else {
-                                print("검색된 제품이 없습니다.")
+                            let decodedResponse = try JSONDecoder().decode(SearchResponse.self, from: data)
+
+                            let products = decodedResponse.data
+                            DispatchQueue.main.async {
+                                print("검색된 제품: \(products)")
                             }
+                            
                         } catch let DecodingError.dataCorrupted(context) {
                             print("디코딩 오류 발생: 데이터 손상 \(context.debugDescription)")
                         } catch let DecodingError.keyNotFound(key, context) {
@@ -178,22 +175,7 @@ struct HomeView: View {
                     print("잘못된 응답이 수신되었습니다.")
                 }
             }
-        }.resume()
-    }
-
-
-    struct ProductSearchResponse: Codable {
-        let message: String
-        let data: [ProductResponseDto]?
-        let pagination: Pagination?
-    }
-
-    struct Pagination: Codable {
-        let currentPage: Int
-        let totalPages: Int
-        let pageSize: Int
-        let totalElements: Int
-        let last: Bool
+        }
     }
     
     private func performSessionApiRequest() {

@@ -51,7 +51,7 @@ private enum HTTPMethod: String {
 
 // MARK: - API Client Protocol
 protocol APIClientProtocol {
-    func searchProducts(query: String) async throws -> [ProductResponseDto]
+    func searchProducts(query: String) async throws -> SearchResponse
     func getProductDetails(productId: Int) async throws -> ProductResponseDto
     func getLikedProducts(offset: Int, limit: Int) async throws -> [ProductResponseDto]
     func toggleProductLike(productId: Int, like: Bool) async throws -> String
@@ -72,10 +72,16 @@ class APIClient: APIClientProtocol {
         self.urlSession = urlSession
     }
 
-    func searchProducts(query: String) async throws -> [ProductResponseDto] {
-        let endpoint = "\(APIEndpoints.search)?query=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
-        return try await sendRequest(endpoint: endpoint, method: "GET", body: nil)
+    func searchProducts(query: String) async throws -> SearchResponse {
+        guard let url = URL(string: "\(baseUrl)/api/product/search?query=\(query)&page=0&size=100") else {
+            throw URLError(.badURL)
+        }
+
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let searchResponse = try JSONDecoder().decode(SearchResponse.self, from: data)
+        return searchResponse
     }
+
 
     func getProductDetails(productId: Int) async throws -> ProductResponseDto {
         let endpoint = "\(APIEndpoints.productDetails)\(productId)"
