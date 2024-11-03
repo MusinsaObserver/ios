@@ -40,6 +40,7 @@ Musinsa Observer is an iOS app that helps users easily search for fashion items,
 1. 이 저장소를 클론합니다. (Clone this repository)
 ```bash
 git clone https://github.com/applefoundationprogram/musinsaobserver-ios.git
+```
 2. 프로젝트 폴더로 이동합니다. (Move to the project folder)
 3. Xcode에서 musinsaobserver.xcodeproj 파일을 엽니다. (Open the musinsaobserver.xcodeproj file in Xcode)
 4. iOS 시뮬레이터 또는 물리적 장치에서 실행합니다. (Run the app on an iOS simulator or physical device)
