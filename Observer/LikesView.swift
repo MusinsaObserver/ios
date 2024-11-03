@@ -1,10 +1,3 @@
-//
-//  LikesView.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/10/24.
-//
-
 import SwiftUI
 
 struct LikesView: View {
@@ -136,7 +129,7 @@ struct LikesView: View {
         ScrollView {
             LazyVStack(spacing: Constants.Spacing.small) {
                 ForEach(likedProducts, id: \.id) { product in
-                    ProductCardView(product: product, favoriteService: FavoriteService(baseURL: URL(string: "https://dc08-141-223-234-184.ngrok-free.app")!))
+                    ProductCardView(product: product, favoriteService: FavoriteService(baseURL: URL(string: "https://6817-169-211-217-48.ngrok-free.app")!))
                 }
                 
                 if isFetchingMore {
@@ -192,28 +185,45 @@ struct LikesView: View {
     }
     
     private var privacyPolicyView: some View {
-        NavigationView {
-            VStack {
-                Text("개인정보 처리방침")
-                    .font(.title)
-                    .padding()
-                
-                Text("이 앱은 사용자의 개인정보를 수집하고 처리합니다...")
-                    .padding()
-                
-                Spacer()
-                
-                Button("회원 탈퇴") {
-                    Task {
-                        await handleAccountDeletion()
+        ZStack {
+            Color.black.opacity(0.4)
+                .edgesIgnoringSafeArea(.all)
+            
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("개인정보 처리방침")
+                        .font(Font.custom("Pretendard", size: 20).weight(.bold))
+                        .foregroundColor(.black)
+                        .padding(.top, 16)
+                    
+                    ScrollView {
+                        Text("이 앱은 사용자의 개인정보를 수집하고 처리합니다. 수집된 개인정보는 서비스 제공과 사용 경험을 개선하기 위해 사용됩니다. 개인정보 보호법에 따라 사용자의 정보는 철저히 보호되며, 사용자는 언제든지 정보 열람, 수정, 삭제를 요청할 수 있습니다. 자세한 내용은 아래의 정책을 참고해주세요.")
+                            .font(Font.custom("Pretendard", size: 14))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 16)
                     }
                 }
-                .foregroundColor(.red)
-                .padding()
+                .padding(16)
+                .background(Color.white)
+                .cornerRadius(16)
+                .shadow(radius: 10)
+                
+                Button(action: {
+                    showPrivacyPolicy = false
+                }) {
+                    Text("닫기")
+                        .font(Font.custom("Pretendard", size: 16).weight(.bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                }
+                .buttonStyle(BorderlessButtonStyle())
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
-            .navigationBarItems(trailing: Button("닫기") {
-                showPrivacyPolicy = false
-            })
+            .frame(maxWidth: 350)
         }
     }
     

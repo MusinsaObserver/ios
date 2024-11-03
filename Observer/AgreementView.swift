@@ -1,10 +1,3 @@
-//
-//  AgreementView.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/16/24.
-//
-
 import SwiftUI
 
 struct AgreementView: View {
@@ -18,7 +11,7 @@ struct AgreementView: View {
     @State private var showThirdPartyPopup = false
     
     @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var isHomeView = false
+    @State private var navigateToHome = false
     
     var body: some View {
         NavigationStack {
@@ -121,14 +114,8 @@ struct AgreementView: View {
                         )
                     }
                 }
-
-                NavigationLink(value: "HomeView", label: {
-                    EmptyView()
-                })
-                .navigationDestination(for: String.self) { value in
-                    if value == "HomeView" {
-                        HomeView()
-                    }
+                .navigationDestination(isPresented: $navigateToHome) {
+                    HomeView()
                 }
             }
         }
@@ -140,8 +127,10 @@ struct AgreementView: View {
     }
     
     private func completeSignUp() {
+        let sessionToken = "yourSessionToken"
+        authViewModel.sessionService.saveSession(sessionToken)
         authViewModel.isLoggedIn = true
-        isHomeView = true
+        navigateToHome = true
     }
 
     func termsOfServiceContent() -> String {

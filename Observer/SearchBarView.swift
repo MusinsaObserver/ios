@@ -1,10 +1,3 @@
-//
-//  SearchBarView.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/10/24.
-//
-
 import SwiftUI
 
 struct SearchBarView: View {

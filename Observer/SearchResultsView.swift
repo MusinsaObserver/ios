@@ -1,10 +1,3 @@
-//
-//  SearchResultsView.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/10/24.
-//
-
 import SwiftUI
 
 struct SearchResultsView: View {
@@ -17,10 +10,10 @@ struct SearchResultsView: View {
     @State private var isShowingLoginView = false
     @EnvironmentObject private var authViewModel: AuthViewModel
 
-    let apiClient = APIClient(baseUrl: "https://dc08-141-223-234-184.ngrok-free.app")
+    let apiClient = APIClient(baseUrl: "https://6817-169-211-217-48.ngrok-free.app")
     let favoriteService: FavoriteServiceProtocol
 
-    init(searchQuery: String, products: [ProductResponseDto] = [], favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://dc08-141-223-234-184.ngrok-free.app")!)) {
+    init(searchQuery: String, products: [ProductResponseDto] = [], favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://6817-169-211-217-48.ngrok-free.app")!)) {
         self.searchQuery = searchQuery
         _products = State(initialValue: products)
         self.favoriteService = favoriteService
@@ -32,13 +25,8 @@ struct SearchResultsView: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: Constants.Spacing.medium) {
-                NavigationBarView(
-                    title: "MUSINSA ⦁ OBSERVER",
-                    isHomeView: $isHomeView,
-                    isShowingLikesView: $isShowingLikesView,
-                    isShowingLoginView: $isShowingLoginView
-                )
-                .padding(.top, safeAreaTop() - 50)
+                navigationBar
+                    .padding(.top, safeAreaTop() - 80)
                 
                 if isLoading {
                     ProgressView("검색 중...")
@@ -63,8 +51,27 @@ struct SearchResultsView: View {
             .onAppear {
                 fetchSearchResults()
             }
+            .navigationDestination(isPresented: $isShowingLikesView) {
+                if authViewModel.isLoggedIn {
+                    LikesView(apiClient: APIClient(baseUrl: "https://6817-169-211-217-48.ngrok-free.app"))
+                } else {
+                    LoginView()
+                }
+            }
+            .navigationDestination(isPresented: $isShowingLoginView) {
+                LoginView()
+            }
         }
         .navigationBarHidden(true)
+    }
+    
+    private var navigationBar: some View {
+        NavigationBarView(
+            title: "MUSINSA ⦁ OBSERVER",
+            isHomeView: $isHomeView,
+            isShowingLikesView: $isShowingLikesView,
+            isShowingLoginView: $isShowingLoginView
+        )
     }
     
     private var productGrid: some View {
@@ -99,10 +106,8 @@ struct SearchResultsView: View {
 
         Task {
             do {
-                // APIClient에서 SearchResponse 타입을 반환
                 let response = try await apiClient.searchProducts(query: searchQuery)
                 
-                // 응답에서 data를 바로 products 배열에 할당
                 products = response.data
                 isLoading = false
             } catch {
@@ -112,7 +117,6 @@ struct SearchResultsView: View {
         }
     }
 
-    
     private func safeAreaTop() -> CGFloat {
         return UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }

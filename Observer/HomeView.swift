@@ -1,10 +1,3 @@
-//
-//  HomeView.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/10/24.
-//
-
 import SwiftUI
 
 struct HomeView: View {
@@ -23,8 +16,10 @@ struct HomeView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: Constants.Spacing.medium) {
-                    Spacer().frame(height: navigationBarHeight)
+                    navigationBar
+                        .padding(.top, safeAreaTop() - 80)
                     searchBar
+                        .padding(.top, safeAreaTop() - 20)
                     Spacer()
                     descriptionText
                     Spacer()
@@ -35,7 +30,7 @@ struct HomeView: View {
                 }
                 .navigationDestination(isPresented: $isShowingLikesView) {
                     if authViewModel.isLoggedIn {
-                        LikesView(apiClient: APIClient(baseUrl: "https://dc08-141-223-234-184.ngrok-free.app"))
+                        LikesView(apiClient: APIClient(baseUrl: "https://6817-169-211-217-48.ngrok-free.app"))
                     } else {
                         LoginView()
                     }
@@ -43,8 +38,6 @@ struct HomeView: View {
                 .navigationDestination(isPresented: $isShowingLoginView) {
                     LoginView()
                 }
-                
-                navigationBar
             }
         }
         .navigationBarHidden(true)
@@ -127,7 +120,7 @@ struct HomeView: View {
     }
     
     private func performSearchApiRequest() {
-        guard let url = URL(string: "https://dc08-141-223-234-184.ngrok-free.app/api/product/search?query=\(searchQuery)&page=0&size=100") else {
+        guard let url = URL(string: "https://6817-169-211-217-48.ngrok-free.app/api/product/search?query=\(searchQuery)&page=0&size=100") else {
             print("Invalid URL")
             return
         }
@@ -177,27 +170,12 @@ struct HomeView: View {
             }
         }
     }
-    
-    private func performSessionApiRequest() {
-        guard let sessionId = authViewModel.getSessionId() else {
-            print("No session ID found")
-            return
+    private func safeAreaTop() -> CGFloat {
+            return UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first?
+                .windows
+                .first { $0.isKeyWindow }?
+                .safeAreaInsets.top ?? 0
         }
-        
-        guard let url = URL(string: "https://dc08-141-223-234-184.ngrok-free.ap") else {
-            print("Invalid URL")
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.setValue("Session \(sessionId)", forHTTPHeaderField: "Authorization")
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("API request failed: \(error.localizedDescription)")
-                return
-            }
-            print("API request successful")
-        }.resume()
-    }
 }

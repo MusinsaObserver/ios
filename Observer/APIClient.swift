@@ -1,13 +1,5 @@
-//
-//  APIClient.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/10/24.
-//
-
 import Foundation
 
-// MARK: - Error Handling
 enum APIError: Error, Equatable {
     case invalidURL
     case noData
@@ -33,7 +25,6 @@ enum APIError: Error, Equatable {
     }
 }
 
-// MARK: - API Endpoints
 private enum APIEndpoints {
     static let search = "/api/product/search"
     static let productDetails = "/api/product/search/"
@@ -44,12 +35,10 @@ private enum APIEndpoints {
     static let logout = "/api/auth/logout"
 }
 
-// MARK: - HTTP Methods
 private enum HTTPMethod: String {
     case GET, POST, DELETE
 }
 
-// MARK: - API Client Protocol
 protocol APIClientProtocol {
     func searchProducts(query: String) async throws -> SearchResponse
     func getProductDetails(productId: Int) async throws -> ProductResponseDto
@@ -61,7 +50,6 @@ protocol APIClientProtocol {
     func sendRequest<T: Codable>(endpoint: String, method: String, body: [String: Any]?) async throws -> T
 }
 
-// MARK: - API Client Implementation
 class APIClient: APIClientProtocol {
     private let urlSession: URLSession
     private let baseUrl: String
@@ -107,7 +95,6 @@ class APIClient: APIClientProtocol {
         var request = URLRequest(url: URL(string: baseUrl + endpoint)!)
         request.httpMethod = "DELETE"
         
-        // 인증 토큰을 헤더에 추가
         if let token = UserDefaults.standard.string(forKey: "authToken") {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
@@ -124,7 +111,6 @@ class APIClient: APIClientProtocol {
     func appleSignIn(idToken: String) async throws -> String {
         let endpoint = APIEndpoints.appleSignIn
         
-        // Define a local struct to decode the response
         struct AppleSignInResponse: Codable {
             let sessionId: String?
             let session: String?
@@ -133,7 +119,6 @@ class APIClient: APIClientProtocol {
         
         let response: AppleSignInResponse = try await sendRequest(endpoint: endpoint, method: "POST", body: ["idToken": idToken])
         
-        // Check for different possible keys in the response
         if let sessionId = response.sessionId {
             return sessionId
         } else if let session = response.session {
@@ -176,7 +161,6 @@ class APIClient: APIClientProtocol {
                 throw APIError.networkError(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"]))
             }
 
-            // Log response details
             print("Response status code: \(httpResponse.statusCode)")
             print("Response headers: \(httpResponse.allHeaderFields)")
 

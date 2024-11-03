@@ -1,10 +1,3 @@
-//
-//  PriceHistoryChartView.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/10/24.
-//
-
 import SwiftUI
 
 struct PriceHistoryChartView: View {
@@ -67,7 +60,6 @@ struct PriceHistoryChartView: View {
                 ForEach(adjustedPriceHistory.indices, id: \.self) { index in
                     if let firstParsedDate = adjustedPriceHistory.first?.parsedDate,
                        let currentParsedDate = adjustedPriceHistory[index].parsedDate {
-                        // 첫 번째 기록과 현재 기록의 날짜를 비교하여 일 수 계산
                         let daysSinceStart = Calendar.current.dateComponents([.day], from: firstParsedDate, to: currentParsedDate).day ?? 0
                         let xPosition = 70 + CGFloat(daysSinceStart) * xScale
                         let yPosition = height - 50 - CGFloat(adjustedPriceHistory[index].price - minPrice) * yScale
@@ -100,14 +92,10 @@ struct PriceHistoryChartView: View {
                 .stroke(Color.red, style: StrokeStyle(lineWidth: 1, dash: [5]))
                 
                 ForEach(0..<4) { i in
-                    // 첫 번째 기록의 날짜를 Date 타입으로 변환하여 사용
                     if let firstParsedDate = adjustedPriceHistory.first?.parsedDate {
-                        // i * 30일을 더한 날짜 계산
                         if let date = Calendar.current.date(byAdding: .day, value: i * 30, to: firstParsedDate) {
-                            // 날짜를 문자열로 변환
                             let dateText = DateFormatter.shortDateFormatter.string(from: date)
                             
-                            // 날짜를 표시하는 텍스트 뷰
                             Text(dateText)
                                 .foregroundColor(.white)
                                 .font(.caption2)
@@ -146,7 +134,6 @@ struct PriceHistoryChartView: View {
     private func addFavoriteDateIfNeeded(priceHistory: [PriceHistory], favoriteDate: Date?) -> [PriceHistory] {
         guard let favoriteDate = favoriteDate else { return priceHistory }
         
-        // 날짜 비교는 parsedDate로 수행
         if priceHistory.contains(where: { history in
             if let parsedDate = history.parsedDate {
                 return Calendar.current.isDate(parsedDate, inSameDayAs: favoriteDate)

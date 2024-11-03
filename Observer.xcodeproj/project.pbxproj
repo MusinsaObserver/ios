@@ -147,6 +147,7 @@
 				F1AEE4D12CACDAF80073FD9B /* Observer.entitlements */,
 				F1B7356F2C983AAE007A9844 /* AgreementView.swift */,
 				F17F2AF72C9011F800C6804F /* APIClient.swift */,
+				F14414072CBFE599005C4167 /* APIModels.swift */,
 				F1B735692C96C092007A9844 /* AppleSignInService.swift */,
 				F1E65AD72C92E413008C6721 /* AuthViewModel.swift */,
 				F17F2AF92C90129400C6804F /* Constants.swift */,
@@ -170,7 +171,6 @@
 				F17F2AFF2C9016DD00C6804F /* SignUpView.swift */,
 				F17F2ABB2C900FC500C6804F /* Assets.xcassets */,
 				F17F2ABD2C900FC500C6804F /* Preview Content */,
-				F14414072CBFE599005C4167 /* APIModels.swift */,
 			);
 			path = Observer;
 			sourceTree = "<group>";

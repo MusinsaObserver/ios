@@ -1,10 +1,3 @@
-//
-//  FavoriteManager.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/11/24.
-//
-
 import Foundation
 
 class FavoriteManager: ObservableObject {

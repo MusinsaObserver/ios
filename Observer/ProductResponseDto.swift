@@ -1,10 +1,3 @@
-//
-//  ProductResponseDto.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/10/24.
-//
-
 import Foundation
 
 struct ProductResponseDto: Identifiable, Codable {
