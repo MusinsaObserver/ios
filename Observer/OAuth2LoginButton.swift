@@ -1,10 +1,3 @@
-//
-//  OAuth2LoginButton.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/10/24.
-//
-
 import CryptoKit
 import SwiftUI
 import AuthenticationServices

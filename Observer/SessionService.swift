@@ -1,10 +1,3 @@
-//
-//  SessionService.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/15/24.
-//
-
 import Foundation
 
 protocol SessionServiceProtocol {
@@ -13,11 +6,11 @@ protocol SessionServiceProtocol {
     func clearSession()
 }
 
+// SessionResponse 구조체 추가
 struct SessionResponse: Codable {
-    let session: String?
-    let user: User?
-    let isNewUser: Bool?
-    let errorMessage: String?
+    let userId: Int
+    let sessionToken: String
+    let newUser: Bool
 }
 
 class SessionService: SessionServiceProtocol {

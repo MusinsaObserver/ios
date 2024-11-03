@@ -1,10 +1,3 @@
-//
-//  SessionManager.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/15/24.
-//
-
 import Foundation
 
 protocol SessionManagerProtocol {

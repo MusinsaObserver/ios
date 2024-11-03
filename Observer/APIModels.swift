@@ -1,12 +1,3 @@
-//
-//  APIModels.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 10/16/24.
-//
-
-// APIModels.swift
-
 import Foundation
 
 struct SearchResponse: Codable {

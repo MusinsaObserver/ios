@@ -1,10 +1,3 @@
-//
-//  ProductDetailView.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/10/24.
-//
-
 import SwiftUI
 
 struct ProductDetailView: View {
@@ -14,26 +7,18 @@ struct ProductDetailView: View {
     @State private var isShowingLogin = false
 
     let favoriteService: FavoriteServiceProtocol
+    @EnvironmentObject var authViewModel: AuthViewModel
 
-    init(product: ProductResponseDto, favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://dc08-141-223-234-184.ngrok-free.app")!)) {
+    init(product: ProductResponseDto, favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://6817-169-211-217-48.ngrok-free.app")!)) {
         self.product = product
         self.favoriteService = favoriteService
     }
 
-    private var isLoggedIn: Bool {
-        return SessionManager().getSession() != nil
-    }
-
     var body: some View {
-        VStack(spacing: 0) {
-            NavigationBarView(
-                title: "MUSINSA ⦁ OBSERVER",
-                isHomeView: .constant(false),
-                isShowingLikesView: .constant(false),
-                isShowingLoginView: .constant(false)
-            )
-            .padding(.top, safeAreaTop())
-            
+        VStack(spacing: Constants.Spacing.medium) {
+            navigationBar
+                .padding(.top, safeAreaTop() - 80)
+
             ScrollView {
                 VStack(spacing: 8) {
                     productImageSection
@@ -44,7 +29,7 @@ struct ProductDetailView: View {
                 }
             }
             .background(Constants.Colors.backgroundDarkGrey)
-            .edgesIgnoringSafeArea(.all)
+            .edgesIgnoringSafeArea(.bottom)
         }
         .onAppear {
             Task {
@@ -58,7 +43,14 @@ struct ProductDetailView: View {
         .navigationBarHidden(true)
     }
 
-    // MARK: - Subviews
+    private var navigationBar: some View {
+        NavigationBarView(
+            title: "MUSINSA ⦁ OBSERVER",
+            isHomeView: .constant(false),
+            isShowingLikesView: .constant(false),
+            isShowingLoginView: .constant(false)
+        )
+    }
 
     private var productImageSection: some View {
         AsyncImage(url: product.imageUrl) { phase in
@@ -70,6 +62,7 @@ struct ProductDetailView: View {
                 image
                     .resizable()
                     .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: 300)
             case .failure:
                 Image(systemName: "xmark.circle")
                     .resizable()
@@ -88,7 +81,7 @@ struct ProductDetailView: View {
                     Text(product.brand)
                         .font(.caption)
                         .foregroundColor(.gray)
-                    
+
                     Text(product.name)
                         .font(.headline)
                         .foregroundColor(.white)
@@ -131,15 +124,14 @@ struct ProductDetailView: View {
                     .foregroundColor(.black)
                     .cornerRadius(8)
             }
-            
+
             Spacer()
-            
-            // 할인율과 가격
+
             VStack(alignment: .trailing) {
                 Text(product.discountRate)
                     .font(.title3)
                     .foregroundColor(.red)
-                
+
                 Text(formatPrice(product.price))
                     .font(.title2)
                     .foregroundColor(.white)
@@ -167,13 +159,13 @@ struct ProductDetailView: View {
                 Spacer()
                 Text(formatPrice(product.originalPrice))
             }
-            
+
             HStack {
                 Text("최저가:")
                 Spacer()
                 Text(formatPrice(12800))
             }
-            
+
             HStack {
                 Text("최고가:")
                 Spacer()
@@ -185,9 +177,8 @@ struct ProductDetailView: View {
         .padding(.horizontal, 16)
     }
 
-    // MARK: - Helper Functions
     private func handleLikeAction() {
-        if isLoggedIn {
+        if authViewModel.isLoggedIn {
             Task {
                 do {
                     isLiked = try await favoriteService.toggleFavorite(for: product.id)
@@ -216,7 +207,7 @@ struct ProductDetailView: View {
             .compactMap { $0 as? UIWindowScene }
             .first?
             .windows
-            .first?
+            .first { $0.isKeyWindow }?
             .safeAreaInsets.top ?? 0
     }
 }

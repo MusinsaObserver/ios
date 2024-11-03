@@ -1,10 +1,3 @@
-//
-//  SignUpView.swift
-//  Observer
-//
-//  Created by Jiwon Kim on 9/10/24.
-//
-
 import SwiftUI
 import AuthenticationServices
 
@@ -24,7 +17,7 @@ struct SignUpView: View {
     
     @EnvironmentObject var authViewModel: AuthViewModel
     
-    private let backendURL = "https://dc08-141-223-234-184.ngrok-free.app"
+    private let backendURL = "https://6817-169-211-217-48.ngrok-free.app"
     
     var body: some View {
         NavigationStack {
@@ -272,38 +265,61 @@ struct TermsPopupView: View {
     @Binding var showPopup: Bool
     
     var body: some View {
-        VStack(spacing: 16) {
-            Text(title)
-                .font(Font.custom("Pretendard", size: 18).weight(.bold))
-                .padding(.top, 16)
+        ZStack {
+            Color.black.opacity(0.4)
+                .edgesIgnoringSafeArea(.all)
             
-            ScrollView {
-                Text(content)
-                    .font(Font.custom("Pretendard", size: 14))
-                    .padding(.horizontal, 16)
-            }
-            
-            HStack {
-                Button("닫기") {
-                    showPopup = false
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(title)
+                        .font(Font.custom("Pretendard", size: 20).weight(.bold))
+                        .padding(.top, 16)
+                        .foregroundColor(.black)
+                    
+                    ScrollView {
+                        Text(content)
+                            .font(Font.custom("Pretendard", size: 14))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 16)
+                    }
                 }
-                .buttonStyle(BorderlessButtonStyle())
-                .padding(.bottom, 16)
+                .padding(16)
+                .background(Color.white)
+                .cornerRadius(16)
+                .shadow(radius: 10)
                 
-                Spacer()
-                
-                Button("동의") {
-                    isChecked = true
-                    showPopup = false
+                HStack {
+                    Button(action: {
+                        showPopup = false
+                    }) {
+                        Text("닫기")
+                            .font(Font.custom("Pretendard", size: 16).weight(.bold))
+                            .foregroundColor(.blue)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(12)
+                    }
+                    .buttonStyle(BorderlessButtonStyle())
+                    
+                    Button(action: {
+                        isChecked = true
+                        showPopup = false
+                    }) {
+                        Text("동의")
+                            .font(Font.custom("Pretendard", size: 16).weight(.bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(12)
+                    }
+                    .buttonStyle(BorderlessButtonStyle())
                 }
-                .buttonStyle(BorderlessButtonStyle())
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
             }
+            .frame(maxWidth: 350)
         }
-        .background(Color.white)
-        .cornerRadius(12)
-        .shadow(radius: 10)
-        .padding(16)
-        .frame(maxWidth: .infinity)
     }
 }
