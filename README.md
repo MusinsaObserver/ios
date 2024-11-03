@@ -45,12 +45,6 @@ git clone https://github.com/applefoundationprogram/musinsaobserver-ios.git
 3. Xcode에서 musinsaobserver.xcodeproj 파일을 엽니다. (Open the musinsaobserver.xcodeproj file in Xcode)
 4. iOS 시뮬레이터 또는 물리적 장치에서 실행합니다. (Run the app on an iOS simulator or physical device)
 
-## 설치 및 실행 방법 | Installation and Running Instructions
-데이터 동기화: 즐겨찾기와 가격 알림 기능은 네트워크 연결이 필요합니다.
-사용 환경: iOS 16.0 이상을 권장합니다.
-Data Sync: Favorites and price alert features require network connectivity.
-Recommended Environment: iOS 16.0 or later.
-
 ## 라이선스 | License
 이 프로젝트는 MIT 라이선스에 따라 배포됩니다. 자세한 사항은 LICENSE 파일을 참조하세요.
 This project is distributed under the MIT License. See the LICENSE file for more details.
