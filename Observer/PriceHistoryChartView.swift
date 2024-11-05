@@ -85,7 +85,7 @@ struct PriceHistoryChartView: View {
                 }
                 
                 Path { path in
-                    let yPosition = height - 50 - CGFloat(Double(currentPrice) - minPrice) * yScale
+                    let yPosition = height - 50 - CGFloat(currentPrice - minPrice) * yScale
                     path.move(to: CGPoint(x: 70, y: yPosition))
                     path.addLine(to: CGPoint(x: width - 30, y: yPosition))
                 }
@@ -118,7 +118,7 @@ struct PriceHistoryChartView: View {
                 Text("\(Int(currentPrice))원")
                     .foregroundColor(.red)
                     .font(.caption)
-                    .position(x: 40, y: height - 50 - CGFloat(Double(currentPrice) - minPrice) * yScale) // y축 왼쪽에 위치
+                    .position(x: 40, y: height - 50 - CGFloat(currentPrice - minPrice) * yScale)
             }
             .scaleEffect(scale)
             .gesture(MagnificationGesture()

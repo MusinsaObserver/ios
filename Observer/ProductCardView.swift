@@ -10,7 +10,7 @@ struct ProductCardView: View {
     var body: some View {
         NavigationLink(destination: ProductDetailView(product: product)) {
             VStack(alignment: .leading) {
-                AsyncImage(url: product.imageUrl) { phase in
+                AsyncImage(url: product.imageURL) { phase in
                     switch phase {
                     case .empty:
                         ProgressView()
@@ -32,7 +32,7 @@ struct ProductCardView: View {
                     }
                 }
                 
-                Text(product.name)
+                Text(product.productName)
                     .font(.custom("Pretendard", size: 14))
                     .foregroundColor(.white)
                     .lineLimit(1)
