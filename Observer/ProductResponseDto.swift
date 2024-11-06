@@ -3,37 +3,28 @@ import Foundation
 struct ProductResponseDto: Identifiable, Codable {
     let id: Int
     let brand: String
-    let name: String
-    let price: Double
+    let productName: String
+    let price: Int
     let discountRate: String
     let originalPrice: Int
-    let url: URL
-    let imageUrl: URL
-    let priceHistory: [PriceHistory]
+    let productURL: URL
+    let imageURL: URL
+    let priceHistoryList: [PriceHistory]
     let category: String
-    
+    let favoriteDate: Date?
+    let highestPrice: Int?
+    let lowestPrice: Int?
+    let currentPrice: Int?
+
     static func ==(lhs: ProductResponseDto, rhs: ProductResponseDto) -> Bool {
         return lhs.id == rhs.id
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case brand
-        case name = "productName"
-        case price
-        case discountRate
-        case originalPrice
-        case url = "productURL"
-        case imageUrl = "imageURL"
-        case priceHistory = "priceHistoryList"
-        case category
     }
 }
 
 struct PriceHistory: Identifiable, Codable {
     let id: Int
     let date: String
-    let price: Double
+    let price: Int
     
     var parsedDate: Date? {
         let dateFormatter = DateFormatter()
@@ -48,6 +39,11 @@ extension ProductResponseDto {
     }
     
     var priceDifference: Int {
-        originalPrice - Int(price)
+        originalPrice - price
     }
+}
+
+struct ProductResponseWrapper: Codable {
+    let message: String
+    let data: ProductResponseDto
 }

@@ -5,19 +5,27 @@ struct ProductDetailView: View {
     @State private var isLiked = false
     @State private var showLoginAlert = false
     @State private var isShowingLogin = false
+    @State private var lowestPrice: Int = 0
+    @State private var highestPrice: Int = 0
 
     let favoriteService: FavoriteServiceProtocol
+    let productService: ProductServiceProtocol
     @EnvironmentObject var authViewModel: AuthViewModel
 
-    init(product: ProductResponseDto, favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://6817-169-211-217-48.ngrok-free.app")!)) {
+    init(product: ProductResponseDto,
+         favoriteService: FavoriteServiceProtocol = FavoriteService(baseURL: URL(string: "https://6817-169-211-217-48.ngrok-free.app")!),
+         productService: ProductServiceProtocol = ProductService(baseURL: URL(string: "https://6817-169-211-217-48.ngrok-free.app")!)) {
         self.product = product
         self.favoriteService = favoriteService
+        self.productService = productService
     }
 
     var body: some View {
         VStack(spacing: Constants.Spacing.medium) {
             navigationBar
                 .padding(.top, safeAreaTop() - 80)
+            
+            Spacer().frame(height: 10).background(Constants.Colors.backgroundDarkGrey)
 
             ScrollView {
                 VStack(spacing: 8) {
@@ -34,9 +42,26 @@ struct ProductDetailView: View {
         .onAppear {
             Task {
                 do {
+                    // JSON 응답 확인용 코드
+                    let productDetailsData = try await productService.getProductDetails(productId: product.id)
+                    if let jsonString = String(data: productDetailsData, encoding: .utf8) {
+                        print("Product Details JSON Response: \(jsonString)")
+                    }
+
+                    // JSON 데이터를 ProductResponseWrapper로 디코딩
+                    let decoder = JSONDecoder()
+                    decoder.dateDecodingStrategy = .iso8601 // 필요한 경우 Date 형식 지정
+                    let productResponseWrapper = try decoder.decode(ProductResponseWrapper.self, from: productDetailsData)
+
+                    // `data` 필드에서 ProductResponseDto 가져오기
+                    let productDetails = productResponseWrapper.data
+
+                    // 디코딩 후 사용
+                    lowestPrice = productDetails.lowestPrice ?? 0
+                    highestPrice = productDetails.highestPrice ?? 0
                     isLiked = try await favoriteService.checkFavoriteStatus(for: product.id)
                 } catch {
-                    print("Error checking favorite status: \(error.localizedDescription)")
+                    print("Error fetching product details: \(error)")
                 }
             }
         }
@@ -53,7 +78,7 @@ struct ProductDetailView: View {
     }
 
     private var productImageSection: some View {
-        AsyncImage(url: product.imageUrl) { phase in
+        AsyncImage(url: product.imageURL) { phase in
             switch phase {
             case .empty:
                 ProgressView()
@@ -82,7 +107,7 @@ struct ProductDetailView: View {
                         .font(.caption)
                         .foregroundColor(.gray)
 
-                    Text(product.name)
+                    Text(product.productName)
                         .font(.headline)
                         .foregroundColor(.white)
                 }
@@ -114,7 +139,7 @@ struct ProductDetailView: View {
     private var actionButtonsSection: some View {
         HStack {
             Button(action: {
-                UIApplication.shared.open(product.url)
+                UIApplication.shared.open(product.productURL)
             }) {
                 Text("무신사 구매 링크")
                     .font(.custom("Pretendard", size: 14))
@@ -132,7 +157,7 @@ struct ProductDetailView: View {
                     .font(.title3)
                     .foregroundColor(.red)
 
-                Text(formatPrice(product.price))
+                Text(formatPrice(product.currentPrice ?? product.price))
                     .font(.title2)
                     .foregroundColor(.white)
             }
@@ -146,7 +171,13 @@ struct ProductDetailView: View {
                 .font(.headline)
                 .foregroundColor(.white)
 
-            PriceHistoryChartView(priceHistory: product.priceHistory)
+            PriceHistoryChartView(
+                priceHistory: product.priceHistoryList,
+                favoriteDate: product.favoriteDate,
+                maxPrice: highestPrice,
+                minPrice: lowestPrice,
+                currentPrice: product.currentPrice ?? product.price
+            )
                 .frame(height: 250)
         }
         .padding(.horizontal, 16)
@@ -163,13 +194,13 @@ struct ProductDetailView: View {
             HStack {
                 Text("최저가:")
                 Spacer()
-                Text(formatPrice(12800))
+                Text(formatPrice(lowestPrice))
             }
 
             HStack {
                 Text("최고가:")
                 Spacer()
-                Text(formatPrice(21900))
+                Text(formatPrice(highestPrice))
             }
         }
         .font(.body)

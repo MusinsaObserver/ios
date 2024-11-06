@@ -28,6 +28,8 @@ struct SearchResultsView: View {
                 navigationBar
                     .padding(.top, safeAreaTop() - 80)
                 
+                Spacer().frame(height: 20)
+                
                 if isLoading {
                     ProgressView("검색 중...")
                         .progressViewStyle(CircularProgressViewStyle())

@@ -39,6 +39,7 @@
 		F1B735782C984266007A9844 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = F1B735752C984266007A9844 /* .gitignore */; };
 		F1B7357A2C998FDF007A9844 /* APIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1B735792C998FDF007A9844 /* APIClientTests.swift */; };
 		F1E65AD82C92E413008C6721 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E65AD72C92E413008C6721 /* AuthViewModel.swift */; };
+		F1E6DFE52CDA04E900063B32 /* ProductService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E6DFE42CDA04E900063B32 /* ProductService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -93,6 +94,7 @@
 		F1B735752C984266007A9844 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		F1B735792C998FDF007A9844 /* APIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientTests.swift; sourceTree = "<group>"; };
 		F1E65AD72C92E413008C6721 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		F1E6DFE42CDA04E900063B32 /* ProductService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -163,6 +165,7 @@
 				F17F2AEF2C90111A00C6804F /* ProductCardView.swift */,
 				F17F2AF32C90115200C6804F /* ProductDetailView.swift */,
 				F17F2AEB2C9010F300C6804F /* ProductResponseDto.swift */,
+				F1E6DFE42CDA04E900063B32 /* ProductService.swift */,
 				F17F2AF12C90113300C6804F /* SearchBarView.swift */,
 				F17F2AFD2C90166C00C6804F /* SearchResultsView.swift */,
 				F1AEE4D22CB40DA60073FD9B /* Session.swift */,
@@ -266,7 +269,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1540;
-				LastUpgradeCheck = 1540;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					F17F2AB32C900FC400C6804F = {
 						CreatedOnToolsVersion = 15.4;
@@ -347,6 +350,7 @@
 				F17F2AFA2C90129400C6804F /* Constants.swift in Sources */,
 				F17F2B0B2C91483F00C6804F /* FavoriteService.swift in Sources */,
 				F17F2AF02C90111A00C6804F /* ProductCardView.swift in Sources */,
+				F1E6DFE52CDA04E900063B32 /* ProductService.swift in Sources */,
 				F17F2AF42C90115200C6804F /* ProductDetailView.swift in Sources */,
 				F1B735702C983AAE007A9844 /* AgreementView.swift in Sources */,
 				F17F2AE62C9010A700C6804F /* OAuth2LoginButton.swift in Sources */,
@@ -580,7 +584,6 @@
 		F17F2ADC2C900FC600C6804F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -600,7 +603,6 @@
 		F17F2ADD2C900FC600C6804F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -620,7 +622,6 @@
 		F17F2ADF2C900FC600C6804F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9UM7U5V24C;
@@ -638,7 +639,6 @@
 		F17F2AE02C900FC600C6804F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9UM7U5V24C;
