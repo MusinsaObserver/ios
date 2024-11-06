@@ -39,7 +39,7 @@ extension ProductResponseDto {
     }
     
     var priceDifference: Int {
-        originalPrice - Int(price)
+        originalPrice - price
     }
 }
 

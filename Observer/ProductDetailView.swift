@@ -24,6 +24,8 @@ struct ProductDetailView: View {
         VStack(spacing: Constants.Spacing.medium) {
             navigationBar
                 .padding(.top, safeAreaTop() - 80)
+            
+            Spacer().frame(height: 10).background(Constants.Colors.backgroundDarkGrey)
 
             ScrollView {
                 VStack(spacing: 8) {
@@ -169,7 +171,13 @@ struct ProductDetailView: View {
                 .font(.headline)
                 .foregroundColor(.white)
 
-            PriceHistoryChartView(priceHistory: product.priceHistoryList)
+            PriceHistoryChartView(
+                priceHistory: product.priceHistoryList,
+                favoriteDate: product.favoriteDate,
+                maxPrice: highestPrice,
+                minPrice: lowestPrice,
+                currentPrice: product.currentPrice ?? product.price
+            )
                 .frame(height: 250)
         }
         .padding(.horizontal, 16)
